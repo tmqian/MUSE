@@ -3,7 +3,7 @@
 
 '''
     usage: python script.py fname.focus N_slices')
-    last updated : 1 Jan 2021
+    last updated : 3 Jan 2021
 '''
 
 # In[1]:
@@ -108,7 +108,7 @@ def compress(tower):
 
 com = np.array([ compress(mat[j]) for j in np.arange(N_towers)])
 
-com_pho = np.ravel(com.T)
+com_pho = np.ravel(com.T) * Ic    # ignores magnets which are switched off
 
 data_out = np.transpose([ X,Y,Z,Ic,M,com_pho,Lc,Mp,Mt])
 
