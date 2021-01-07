@@ -1,14 +1,17 @@
-## Updated 30 Oct 2020
-
 import numpy as np
 import matplotlib.pyplot as plt
-from coilpy import *
 
+try:
+    from coilpy import *
+except:
+    print('  note: coilpy package unavailable')
 #from mayavi import mlab
 
-class ReadFAMUS():
-    
-    
+'''
+    Last Updated: 03 Jan 2021
+'''
+
+class ReadFAMUS():    
 
     def __init__(self,fname):
         self.fname = fname
@@ -101,7 +104,7 @@ class ReadFAMUS():
             for j in np.arange(N):
                 line = '{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \n'.format(*outdata[j])
                 f.write(line)
-        print('Wrote %i magents'%N)
+        print('Wrote %i magnets'%N)
         
     def mayavi_plot_rho(self,scale=0.03, show_vector=True, vec_scale=0.05, \
                         add_symmetry=False, flip_sign=False, q=1, legend=True):
@@ -132,6 +135,7 @@ class ReadFAMUS():
         mlab.show()
         
     def hist_pho(self,q=1,bins=20,new_fig=False):
+        
         if (new_fig):
             plt.figure()
         a_rho = abs(self.pho**q)
@@ -140,10 +144,22 @@ class ReadFAMUS():
         chid = np.mean( ( a_rho*(1 - a_rho) )**2 * 4 )
         plt.hist(a_rho, bins, label='dpbin = %.2e'%chid)
         
+        
+        # calculate pmvol
+        m = self.M[0]
+        s = np.sum(np.abs(self.pho)) 
+        pmvol = s*m*4 # full torus
+        plt.plot([],[],'C1*',label='pmvol = %.3e' % pmvol)
+        
+        fn = self.fname.split('/')[-1].split('.')[0]
+        plt.title(fn)
+        
         plt.legend()
         
         
     def to_uv(self,R0=0.3048):
+        # converts 3D magnet position to 2D solid angle
+        # u is toroidal angle, v is poloidal angle.
         
         x = self.X
         y = self.Y
@@ -187,7 +203,7 @@ class ReadFAMUS():
 
     def plot_slices(self,N_layers=18):
 
-        u,v,projec = self.to_towers()
+        u,v,projec = self.to_towers(N_layers=N_layers)
 
         plt.figure(figsize=(9,12))
 
@@ -224,9 +240,9 @@ class ReadFAMUS():
         
         
         
-    def plot_symm(self, export=False, fig=True, show_pipes=True):
+    def plot_symm(self, export=False, fig=True, show_pipes=True,N_layers=18):
 
-        tx,px,m = self.to_towers()
+        tx,px,m = self.to_towers(N_layers=N_layers)
         
 
         T = np.concatenate((tx, np.pi-tx[::-1])) # toroidal
@@ -244,6 +260,7 @@ class ReadFAMUS():
             plt.figure()
 
         plt.tricontourf(T2,P2,M2,10,extend='both',cmap='RdBu_r')
+        plt.colorbar()
         
         if (show_pipes):
             plt.axvline(np.pi/4,ls='--',color='C1')
