@@ -15,8 +15,8 @@ N_poloidal_Booz = 64
 N_poloidal_VMEC = 128
 
 # choose plasma boundary
-fboundary = '../POLYHYMNIA/ncsx_2p_vacuum.plasma'
-plasma = FourSurf.read_focus_input(fboundary) # I don't like this, write your own function
+#fboundary = '../POLYHYMNIA/ncsx_2p_vacuum.plasma'
+#plasma = FourSurf.read_focus_input(fboundary) # I don't like this, write your own function
 
 
 # function for reading netCDF output
@@ -248,12 +248,6 @@ class readBOOZ():
 '''
 VMEC
 '''
-
-def plasma_plot(zeta=0,npoints=360):
-    
-    rb,zb = plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
-    plt.plot(rb*100,zb*100,'tab:gray',ls='--',lw=.7)
-
     
 class readVMEC():
     def __init__(self,fname,R=0.3048,a=0.0762):
@@ -270,6 +264,8 @@ class readVMEC():
         self.rmnc = get(f,'rmnc')
         self.zmns = get(f,'zmns')
         self.iota = get(f,'iotaf')
+
+        self.plasma_file = False
         
     def get_surface(self, N, phi=0, s=-1):
         
@@ -299,7 +295,8 @@ class readVMEC():
         plt.ylabel('Z [cm]', fontsize=12)
         plt.xlabel('R [cm]', fontsize=12)
         
-        plasma_plot(zeta=phi,npoints=360)
+        if (self.plasma_file):
+            self.plasma_plot(zeta=phi,npoints=360)
         
         plt.plot([],[],'%s--'%color, label=self.tag)
         plt.legend(loc=2,frameon=False)
@@ -333,3 +330,15 @@ class readVMEC():
         plt.title('Rotation Transform')
         plt.ylabel('iota')
         plt.xlabel('surface')
+
+    def load_plasma(self, plasma_file):
+
+        self.plasma_file = plasma_file
+        self.plasma = FourSurf.read_focus_input(plasma_file) # I don't like this, write your own function
+    
+    def plasma_plot(self, zeta=0,npoints=360):
+        
+        rb,zb = self.plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
+        plt.plot(rb*100,zb*100,'tab:gray',ls='--',lw=.7)
+    
+    
