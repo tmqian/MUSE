@@ -5,6 +5,7 @@ import MagnetReader as mr
 import numpy as np
 import sys
 
+# usage: python slice-layer.py fname.focus
 
 ### USER INPUT ###
 set_layer  = [1,1,1,1,
@@ -40,8 +41,8 @@ for j in np.arange(N_layers):
     arr.append(block)
 
 new_Ic = np.ndarray.flatten(np.array(arr))
-fd.Ic  = new_Ic
-fd.pho = fd.pho*new_Ic
+fd.Ic  = fd.Ic  * new_Ic
+fd.pho = fd.pho * new_Ic
 fd.update_data()
 fd.writefile('slice_'+f)
 

@@ -1,4 +1,4 @@
-# Updated 30 October 2020
+# Updated 5 January 2021
 
 import MagnetReader as mr
 
@@ -12,7 +12,10 @@ fd = mr.ReadFAMUS(f)
 
 fd.plot_symm()
 
+plt.title(f)
+plt.draw() # for interactions
+plt.show()
+
 fout = 'map_%s.png'%f
 plt.savefig(fout)
 print('Wrote magnet map to %s'%fout)
-

@@ -35,8 +35,13 @@ print('Read file %s' % file)
 # load data
 
 data0 = np.array([line.strip().split(',') for line in data_in[3:]])
-data1 = np.array((data0[:,3:-1]),float)
-X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
+try: # some files end with an extra comma
+    data1 = np.array((data0[:,3:]),float)
+    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
+except:
+    data1 = np.array((data0[:,3:-1]),float)
+    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
+
 
 
 # In[4]:
@@ -73,8 +78,11 @@ def compress(tower):
     new = np.ones(N_slices)*1e-4
 
     mag = abs(np.sum(tower))
-    sgn = np.sum(tower)/mag
-    
+    if (mag > 0):
+        sgn = np.sum(tower)/mag
+    else:
+        sgn = 1
+
     k = 0    
     if (mag < 1): 
         # empty tower
