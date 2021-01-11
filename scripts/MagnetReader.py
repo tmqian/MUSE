@@ -8,7 +8,7 @@ except:
 #from mayavi import mlab
 
 '''
-    Last Updated: 03 Jan 2021
+    Last Updated: 11 Jan 2021
 '''
 
 class ReadFAMUS():    
@@ -271,12 +271,28 @@ class ReadFAMUS():
         
 
 ### end class function
-def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05, \
-                    add_symmetry=False, flip_sign=False, q=1, legend=True):
+def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05, 
+                    add_symmetry=False, flip_sign=False, skip_switch=False, filter_blank=0,
+                    q=1, legend=True):
     
     from mayavi import mlab
 
     X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(self.data)
+    
+    if (skip_switch):
+        X = X * Ic
+        Y = Y * Ic
+        Z = Z * Ic
+        pho = pho * Ic
+        
+    if (filter_blank > 0):
+        
+        isMag = np.array( abs(pho) > filter_blank, int )
+        
+        X = X * isMag
+        Y = Y * isMag
+        Z = Z * isMag
+        #pho = pho *
 
     if (add_symmetry):
         X,Y,Z,pho = stellarator_symmetry(X,Y,Z,pho)
@@ -300,3 +316,42 @@ def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05, \
         mlab.scalarbar()
 
     mlab.show()
+
+'''
+   takes a half period, creates full torus (assuming NFP=2)
+   may also assume which half period we start with
+'''
+# this fuction can probably be improved
+def stellarator_symmetry(X,Y,Z,I):
+    
+    xyzi_1 = np.transpose([X,Y,Z,I])
+    xyzi_2 = np.transpose([-X,Y,-Z,-I])
+    
+    x,y,z,i = np.transpose(np.concatenate((xyzi_1, xyzi_2)))
+    xyz = np.transpose([x,y,z])
+
+    n = [0,0,1]
+    t = np.pi
+    temp = [rotate(r,n,t) for r in xyz]
+    x2,y2,z2 = np.transpose(temp)
+    
+    XYZI_1 = np.transpose([x,y,z,i])
+    XYZI_2 = np.transpose([x2,y2,z2,i])
+    X2,Y2,Z2,I2 = np.transpose(np.concatenate((XYZI_1, XYZI_2)))
+    return X2,Y2,Z2,I2
+
+# manipulating magnets
+def norm(v):
+    v = np.array(v)
+    return v / mag(v)
+
+def mag(v):
+    return np.sqrt( np.sum(v*v) )
+
+# performs quarternion rotation of v, around direction n, by angle t (positive right-hand rotation)
+def rotate(v,n,t):
+    n = norm(n)
+    r = v*np.cos(t) + np.cross(n,v)*np.sin(t) + (1-np.cos(t))*np.dot(v,n)*n
+    return r
+
+
