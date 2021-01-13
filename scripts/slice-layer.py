@@ -1,4 +1,4 @@
-# Updated 3 January 2021
+# Updated 12 January 2021
 
 import MagnetReader as mr
 
@@ -25,7 +25,7 @@ N_mag = len( fd.pho )
 N_layers = len(set_layer)
 N_towers = N_mag / N_layers
 print( '  {} total magnets'.format(N_mag) )
-print( '  user sepecified {} layers'.format(N_layers) )
+print( '  user specified {} layers'.format(N_layers) )
 print( '  found {} magnets per layer'.format(N_towers) )
 
 if (N_towers == int(N_towers)):

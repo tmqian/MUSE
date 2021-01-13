@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mc
 
 try:
     from coilpy import *
@@ -202,7 +203,7 @@ class ReadFAMUS():
 
 
     def plot_slices(self,N_layers=18):
-
+        # compression slice map
         u,v,projec = self.to_towers(N_layers=N_layers)
 
         plt.figure(figsize=(9,12))
@@ -237,6 +238,52 @@ class ReadFAMUS():
 
         #plt.suptitle(fd.fname)
         plt.tight_layout()
+        
+ 
+    def slice_map(self,N_layers=18):
+        # compression slice map
+        u,v,projec = self.to_towers(N_layers=N_layers)
+        pho = self.pho
+        N_towers = int(len(pho)/ N_layers)
+        print(len(pho), N_towers)
+        #m = np.reshape(self.pho, (N_towers,N_layers)).T
+        m = np.reshape(self.pho, (N_layers,N_towers))
+
+        plt.figure(figsize=(9,12))
+
+        plt.subplot(5,4,1)
+        plt.tricontourf(u,v,projec,N_layers,cmap='RdBu_r',extend='both')
+        plt.colorbar()
+        plt.title('Total Towers')
+        plt.xlabel('toroidal half period')
+        plt.ylabel('poloidal angle')
+
+        plt.axhline(np.pi/2,ls='--',color='C1')
+        plt.axhline(3*np.pi/2,ls='--',color='C1')
+        plt.axvline(np.pi/4,ls='--',color='C1')
+
+        levels = [-.9,-.7,-.5,-.3,-.1,.1,.3,.5,.7,.9]
+        norm = mc.BoundaryNorm(levels, 256)
+ 
+        for s in np.arange(N_layers):
+            plt.subplot(5,4,s+2)
+            plt.tricontourf(u,v,m[s],cmap='jet',extend='both', levels=levels, norm=norm) 
+            #plt.tricontourf(u,v,m[s],11,cmap='jet',vmin=-1,vmax=1,extend='both')
+            #plt.tricontourf(u,v,m[s],10,cmap='jet',extend='both')
+            #plt.clim(-1,1) 
+            plt.colorbar()
+            plt.title('Layer %i' % (s+1) )
+         #   plt.xlabel('toroidal half period')
+         #   plt.ylabel('poloidal angle')
+
+            plt.axhline(np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axhline(3*np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axvline(np.pi/4,ls='--',color='C1',lw=0.7)
+
+
+        plt.suptitle(self.fname)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        #plt.tight_layout()
         
         
         
