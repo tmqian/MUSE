@@ -13,9 +13,10 @@ fd = mr.ReadFAMUS(f)
 fd.plot_symm()
 
 plt.title(f)
-plt.draw() # for interactions
-plt.show()
-
 fout = 'map_%s.png'%f
 plt.savefig(fout)
 print('Wrote magnet map to %s'%fout)
+plt.draw() # for interactions
+plt.show()
+
+

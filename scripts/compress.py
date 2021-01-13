@@ -11,60 +11,6 @@
 import numpy as np
 import sys
 
-print('Welcome to FAMUS Dipole Compressor')
-
-# In[2]:
-
-# open file
-try:
-    file = sys.argv[1]
-    with open(file) as f:
-        data_in = f.readlines()
-    
-except:
-    print('  error: issue finding file')
-    print('  usage: python script.py fname.focus N_slices')
-    sys.exit()
-    
-print('Read file %s' % file)
-
-
-
-# In[3]:
-
-# load data
-
-data0 = np.array([line.strip().split(',') for line in data_in[3:]])
-try: # some files end with an extra comma
-    data1 = np.array((data0[:,3:]),float)
-    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
-except:
-    data1 = np.array((data0[:,3:-1]),float)
-    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
-
-
-
-# In[4]:
-
-# set tower height, calculate number of towers
-try:
-    N_slices = int( sys.argv[2] )
-    print('  user selected tower height: {}'.format(N_slices) )
-    
-except:
-    N_slices = 16
-    print('  default tower height: %i slices' % N_slices)
-
-n_dip = len(Pho)
-N_towers = int(n_dip / N_slices)
-print('  N Dipoles, Slices, Towers: {} {} {}'.format(n_dip,N_slices,N_towers) )
-
-# unfold data into tower map
-mat = np.reshape(Pho,(N_slices,N_towers)).T
-
-
-# In[5]:
-
 '''
     + compresses magnetization to the bottom t* style remainders
     + leaves everything non-zero to enable further optimization
@@ -74,7 +20,7 @@ mat = np.reshape(Pho,(N_slices,N_towers)).T
 '''
 def compress(tower):
     
-    global N_slices
+    #global N_slices
     new = np.ones(N_slices)*1e-4
 
     mag = abs(np.sum(tower))
@@ -83,7 +29,7 @@ def compress(tower):
     else:
         sgn = 1
 
-    k = 0    
+    k = N_base-1 # need to include base
     if (mag < 1): 
         # empty tower
         new[k] = mag 
@@ -112,23 +58,72 @@ def compress(tower):
     return new * sgn
 
 
+
+def compute_base(Ic):
+
+    mat = np.reshape(Pho,(N_slices,N_towers))
+    isEmpty = np.array( np.sum(mat,axis=1) == 0 )
+    base = np.sum(isEmpty)
+    return base
+
+
+### main
+print('Welcome to FAMUS Dipole Compressor')
+
+# open file
+try:
+    file = sys.argv[1]
+    with open(file) as f:
+        data_in = f.readlines()
+    
+except:
+    print('  error: issue finding file')
+    print('  usage: python script.py fname.focus N_slices')
+    sys.exit()
+    
+print('Read file %s' % file)
+
+
+# load data
+
+data0 = np.array([line.strip().split(',') for line in data_in[3:]])
+try: # some files end with an extra comma
+    data1 = np.array((data0[:,3:]),float)
+    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
+except:
+    data1 = np.array((data0[:,3:-1]),float)
+    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
+
+
+# set tower height, calculate number of towers
+try:
+    N_slices = int( sys.argv[2] )
+    print('  user selected tower height: {}'.format(N_slices) )
+    
+except:
+    N_slices = 18
+    print('  default tower height: %i slices' % N_slices)
+
+n_dip = len(Pho)
+N_towers = int(n_dip / N_slices)
+print('  N Dipoles, Slices, Towers: {} {} {}'.format(n_dip,N_slices,N_towers) )
+
+
+# unfold data into tower map
+mat = np.reshape(Pho,(N_slices,N_towers)).T
+N_base = compute_base(Ic)
+
+
 # compress towers
 
 com = np.array([ compress(mat[j]) for j in np.arange(N_towers)])
-
 com_pho = np.ravel(com.T) * Ic    # ignores magnets which are switched off
-
 data_out = np.transpose([ X,Y,Z,Ic,M,com_pho,Lc,Mp,Mt])
-
 dname = [ 'pm{:08d}'.format(j) for j in np.arange(n_dip) ]
-
-
-# In[6]:
 
 # write
 
 fout = 'com_'+ file.split('/')[-1]
-
 with open(fout,'w') as f:
     
     for j in np.arange(3):

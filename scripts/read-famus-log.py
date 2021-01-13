@@ -23,19 +23,26 @@ def read_data(fname):
     j = 0
     for line in datain:
         if (line.find('Quasi-Newton method') > 0):
-            start = j
+            start = j+2
 
         if (line.find('output') > -1):
-            stop = j-1
+            stop = j
 
         if (line.find('EXITING') > 0):
             stop = j
         j+=1
-    print('finish:', start,stop)
+
+    nsteps = stop - start + 1
+    #print(' {:<50}: {} steps'.format(fname, nsteps) )
  
     # extract data
-    data1 = datain[start+2:stop]
+    data1 = datain[start:stop]
     data = np.array(  [line.strip().split(';')[1:-1] for line in data1], float )
+
+    # optional
+
+    chi, dE, bnorm, pmsum, dpbin, pmvol = np.transpose(data)
+    print(' {:<50}, {:4d}, {:e}, {:e}, {:e}'.format(fname, nsteps, bnorm[-1], dpbin[-1], pmvol[-1] ) )
     return data
 
 
@@ -61,9 +68,10 @@ def plot_data(data,fname):
 
 print(' usage: python read-famus-log.py <list-log-files>')
 
-fig, axs = plt.subplots(1, 3, figsize=(9,3) )
+print(' {:<50}, {:4}, {:8}, {:8}, {:8}'.format('fname', 'nsteps', 'bnorm', 'dpbin', 'pmvol') )
+fig, axs = plt.subplots(1, 3, figsize=(12,5) )
 for fname in sys.argv[1:]:
-    print(fname)
+    #print(fname)
     try:
         data = read_data(fname)
         plot_data(data,fname)
@@ -71,8 +79,9 @@ for fname in sys.argv[1:]:
         print('  issue with file: %s' % fname)
 
 axs[0].legend(loc=2)
-plt.suptitle('Famus Log')
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+#plt.suptitle('Famus Log')
+#plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.tight_layout()
 plt.draw() # for interactions
 plt.show()
 

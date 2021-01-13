@@ -9,7 +9,7 @@ and writes to FAMUS file bin_fname.focus, keeping all else the same.
 usage: 
 $ python script.py fname.focus
 
-on Eddy it may ve necessary to 
+on Eddy it may be necessary to 
 $ module load anaconda3
 
 Last Updated: 8 Oct 2020 by Tony Qian

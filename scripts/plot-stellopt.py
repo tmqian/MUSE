@@ -2,6 +2,15 @@ import StelloptReader as sr
 import sys
 import matplotlib.pyplot as plt
 
+# updated 11 Jan 2021
+'''
+  usage: python plot_stellopt.py <file_tag>
+
+  Looking for
+     wout_fname.nc
+     boozmn_fname.nc
+     neo_out.fname
+'''
 fname = sys.argv[1]
 
 f_vmec = 'wout_'   + fname +'.nc'
