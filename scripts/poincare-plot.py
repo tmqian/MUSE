@@ -2,7 +2,7 @@
 # coding: utf-8
 
 '''
-Prepared by Tony M. Qian on 8 Sept 2020
+Updated: 21 Jan 2021
 This script reads FAMUS/FOCUS output and saves a poincare plot
 
 usage: python3 script.py focus-fname.h5 key
@@ -13,6 +13,8 @@ where "key" is an integer (0,1,2,3) which saves .pdf and .png in binary conventi
 1 = 01 : pdf
 2 = 10 : png
 3 = 11 : both
+
+takes an optional plasma file for plotting boundary
 '''
 
 
@@ -25,7 +27,8 @@ from matplotlib import cm
 import sys
 
 from netCDF4 import Dataset
-
+#from coilpy import FourSurf
+import MagnetReader as mr
 
 # In[2]:
 
@@ -101,22 +104,40 @@ plt.xlabel('R [cm]')
 plt.title(fname)
 plt.legend(loc=2)
 
+# plasma plot
+
+def plasma_plot(zeta=0,npoints=360):
+    rb,zb = plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
+    plt.plot(rb,zb,'tab:gray',ls='--',lw=.7)
+ 
+try:
+    fboundary = sys.argv[3]
+    print(' plasma file found: ', fboundary)
+    plasma = mr.FourSurf.read_focus_input(fboundary)
+    plasma_plot()
+
+except:
+    #print('plasma issue')
+    pass
 
 # write
     
 def write(fout):
-    plt.savefig(fout,bbox=False)
+    plt.savefig(fout)
+    #plt.savefig(fout,bbox=False)
     print('Wrote Poincare Plot to file: %s' % fout)
 
 try:
     key = int(sys.argv[2])
 except:   
-    print('No write command given')
+    print(' No write command given')
     print('  usage: python script.py focus-fname.h5 key')
     print('    key=1 : writes .pdf')
     print('    key=2 : writes .png')
     print('    key=3 : writes .pdf and .png')
-    sys.exit()
+    #sys.exit()
+    print(' using default: key=2, .png')
+    key = 2
     
 if (key == 1):
     fout = 'pp-%s.pdf' % fname
