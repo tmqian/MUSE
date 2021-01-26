@@ -106,6 +106,7 @@ class ReadFAMUS():
                 line = '{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \n'.format(*outdata[j])
                 f.write(line)
         print('Wrote %i magnets'%N)
+        print('  new file:', fname)
         
     def mayavi_plot_rho(self,scale=0.03, show_vector=True, vec_scale=0.05, \
                         add_symmetry=False, flip_sign=False, q=1, legend=True):
@@ -202,8 +203,8 @@ class ReadFAMUS():
         return px[0],tx2[0],projec
 
 
+        # compression slice map (old)
     def plot_slices(self,N_layers=18):
-        # compression slice map
         u,v,projec = self.to_towers(N_layers=N_layers)
 
         plt.figure(figsize=(9,12))
@@ -241,12 +242,11 @@ class ReadFAMUS():
         
  
     def slice_map(self,N_layers=18):
-        # compression slice map
+        # Plots magnet distribution, layer by layer
         u,v,projec = self.to_towers(N_layers=N_layers)
         pho = self.pho
         N_towers = int(len(pho)/ N_layers)
         print(len(pho), N_towers)
-        #m = np.reshape(self.pho, (N_towers,N_layers)).T
         m = np.reshape(self.pho, (N_layers,N_towers))
 
         plt.figure(figsize=(9,12))
@@ -262,14 +262,13 @@ class ReadFAMUS():
         plt.axhline(3*np.pi/2,ls='--',color='C1')
         plt.axvline(np.pi/4,ls='--',color='C1')
 
-        levels = [-.9,-.7,-.5,-.3,-.1,.1,.3,.5,.7,.9]
+        levels = np.linspace(-.9,.9,10)
+        #levels = [-.9,-.7,-.5,-.3,-.1,.1,.3,.5,.7,.9]
         norm = mc.BoundaryNorm(levels, 256)
  
         for s in np.arange(N_layers):
             plt.subplot(5,4,s+2)
             plt.tricontourf(u,v,m[s],cmap='jet',extend='both', levels=levels, norm=norm) 
-            #plt.tricontourf(u,v,m[s],11,cmap='jet',vmin=-1,vmax=1,extend='both')
-            #plt.tricontourf(u,v,m[s],10,cmap='jet',extend='both')
             #plt.clim(-1,1) 
             plt.colorbar()
             plt.title('Layer %i' % (s+1) )
@@ -283,8 +282,59 @@ class ReadFAMUS():
 
         plt.suptitle(self.fname)
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        #plt.tight_layout()
         
+        
+        #plt.plot([],[],label=self.fname)
+        #plt.legend(loc=1)
+
+ 
+    def dpbin_map(self,N_layers=18):
+        # Plots magnet distribution, layer by layer
+        u,v,projec = self.to_towers(N_layers=N_layers)
+        pho = self.pho
+        N_towers = int(len(pho)/ N_layers)
+        #print(len(pho), N_towers)
+
+        plt.figure(figsize=(9,12))
+
+        plt.subplot(5,4,1)
+        plt.tricontourf(u,v,projec,N_layers,cmap='RdBu_r',extend='both')
+        plt.colorbar()
+        plt.title('Total Towers')
+        plt.xlabel('toroidal half period')
+        plt.ylabel('poloidal angle')
+
+        plt.axhline(np.pi/2,ls='--',color='C1')
+        plt.axhline(3*np.pi/2,ls='--',color='C1')
+        plt.axvline(np.pi/4,ls='--',color='C1')
+
+        levels = np.linspace(-.9,.9,10)
+        #levels = [-.9,-.7,-.5,-.3,-.1,.1,.3,.5,.7,.9]
+        norm = mc.BoundaryNorm(levels, 256)
+
+        m = np.reshape(self.pho, (N_layers,N_towers))
+
+        sgn = np.array(m>0,int)*2 - 1
+        M = np.abs(m)
+        dpbin = M*(1-M) * sgn
+
+        for s in np.arange(N_layers):
+            plt.subplot(5,4,s+2)
+            plt.tricontourf(u,v,10*dpbin[s],cmap='jet',extend='both', levels=levels, norm=norm) 
+            #plt.tricontourf(u,v,dpbin[s],cmap='jet',extend='both')#, levels=levels, norm=norm) 
+            #plt.clim(-1,1) 
+            plt.colorbar()
+            plt.title('Layer %i' % (s+1) )
+         #   plt.xlabel('toroidal half period')
+         #   plt.ylabel('poloidal angle')
+
+            plt.axhline(np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axhline(3*np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axvline(np.pi/4,ls='--',color='C1',lw=0.7)
+
+
+        plt.suptitle('10x dpbin: '+self.fname)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
         
     def plot_symm(self, export=False, fig=True, show_pipes=True,N_layers=18):
@@ -305,10 +355,16 @@ class ReadFAMUS():
         
         if (fig):
             plt.figure()
-
-        plt.tricontourf(T2,P2,M2,10,extend='both',cmap='RdBu_r')
+ 
+        #levels = np.linspace(-15,15,8)
+        #levels = np.linspace(-N_layers, N_layers, N_layers+1)
+        levels = [-15,-11,-7,-5,-1,1,5,7,11,15]
+        norm = mc.BoundaryNorm(levels, 256)
+        plt.tricontourf(T2,P2,M2,cmap='jet',extend='both', levels=levels, norm=norm) 
+ 
+#        plt.tricontourf(T2,P2,M2,10,extend='both',cmap='RdBu_r')
         plt.colorbar()
-        
+              
         if (show_pipes):
             plt.axvline(np.pi/4,ls='--',color='C1')
             plt.axvline(5*np.pi/4,ls='--',color='C1')
