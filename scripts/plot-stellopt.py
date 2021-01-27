@@ -29,6 +29,12 @@ vd.plot_vmec_3()
 plt.draw()
 plt.savefig('vmec_%s.png' % fname)
 
+print('  plotting iota profile')
+plt.figure()
+vd.plot_iota(fig=False,ref=True)
+plt.draw()
+plt.savefig('iota_%s.png' % fname)
+
 print('reading neo  file: ', f_neo)
 plt.figure()
 sr.plot_neo(f_neo,ref=True)
@@ -37,7 +43,7 @@ plt.savefig('neo_%s.png' % fname)
 
 print('reading booz file: ', f_booz)
 bd = sr.readBOOZ(f_booz)
-s = 46
+s = 23
 plt.figure(figsize=(9,4))
 plt.subplot(1,2,1)
 bd.plot_Booz_Contour(s_idx=s,plot_iota=True,fig=False)

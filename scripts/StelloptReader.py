@@ -5,7 +5,7 @@ from netCDF4 import Dataset
 #from coilpy import FourSurf
 from surface import FourSurf
 
-# Updated 11 Jan 2021
+# Updated 26 Jan 2021
 
 ### Define Angles
 #      User input, ADJUST these!
@@ -322,9 +322,12 @@ class readVMEC():
 
         if (ref):
             # fixed ref for NCSX
-            plt.plot([0,48],[0.199,0.188],'C8*--',label='target ncsx')
+            plt.plot([0,1],[0.199,0.188],'C8*--',label='target ncsx')
+            #plt.plot([0,48],[0.199,0.188],'C8*--',label='target ncsx')
             
-        plt.plot(self.iota,'.--',label=self.tag)
+        N = len(self.iota)
+        s = np.arange(N) + 1
+        plt.plot(s/N, self.iota, '.--',label=self.tag)
         plt.legend(frameon=False)
 
         plt.title('Rotation Transform')
