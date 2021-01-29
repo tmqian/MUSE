@@ -191,17 +191,21 @@ vmap_bfield_s=vmap(bfield_mut,(None,None,0))
 
 # In[20]:
 
+N=10 #number of mutable dipoles
+Ndof=N*3 #number of degrees of freedom -- 3X number of dipoles due to 3 spatial coordinates
+
 
 #Choose the number of mutable dipoles now. bfield_fixed is being defined here
 # for later use in chi2b calc
-bfield_fixed=vmap_bfield(ravelxyz,np.transpose(moments),positions,35166)
+#Note: the value passed to 'idx' to bfield is the point in the list where the fixed dipoles start
+bfield_fixed=vmap_bfield(ravelxyz,np.transpose(moments),positions,Ndof)
 #print(bfield_fixed)
 
 
 # In[21]:
 
 
-bfield_muta=vmap_bfield_s(ravelxyz[:35166],np.transpose(moments),positions) #concatenate ravelxyz to consider only the mutable dipoles
+bfield_muta=vmap_bfield_s(ravelxyz[:Ndof],np.transpose(moments),positions) #concatenate ravelxyz to consider only the mutable dipoles
 #this subset from ravelxyz will be the group used in grad to compute the derivative
 #we can use this method to calculate shape gradients and Hessian matrices for a subset of dipoles.
 #must be the first ones in the list
@@ -212,7 +216,7 @@ bfield_muta=vmap_bfield_s(ravelxyz[:35166],np.transpose(moments),positions) #con
 
 
 bfield_all=bfield_muta+bfield_fixed
-print(bfield_all)
+print(bfield_all,'bfield_all')
 
 
 # In[23]:
@@ -286,16 +290,54 @@ def chi2b(ravel_xyz):
 
 # In[31]:
 
+#compute shape gradient
+gradient=grad(chi2b)(ravelxyz[:Ndof])
+gx=nnp.array(gradient[::3])
+gy=nnp.array(gradient[1::3])
+gz=nnp.array(gradient[2::3])
+SGs=nnp.array(nnp.transpose((gx,gy,gz)))
+#print(gx[0],gy[0],gz[0],SGs[0])
+#mags.toVTK('SG_MUSE_11722',SG=(gx,gy,gz)) #be sure to title the vtk file to distinguish the MUSE configuration
+#print('vtk successful')
+
+#finite-difference confirmation of SG
 
 #make list of vectors
 def vectors(i):
-    vec=np.zeros(len(ravelxyz[:31566]))
+    vec=np.zeros(len(ravelxyz[:Ndof]))
     vec_jax=index_update(vec,i,np.array(int(1)))
     return vec_jax
 
+def fd_sg(f,x,i):
+    eps=1e-3 #Note: changing eps will change the results of FD-- experiment a little with this:
+    #every configuration is different and a different eps value may improve compatibility between FD and SG
+    eps_arr=eps*vectors(i)
+    elt=(f(x+eps_arr)-f(x-eps_arr))/(2*eps)
+    return elt
 
 # In[32]:
 
+#choose a small Ndof to run this-- the FD calc takes a lot of memory
+#this section of code is for checking to see if the SG calc was done correctly for a small number of dipoles.
+fds=[]
+for i in np.arange(Ndof):
+    elts=fd_sg(chi2b,ravelxyz[:Ndof],i)
+    fds.append(elts)
+print(np.array(fds))
+
+
+(np.array(fds)-np.ravel(SGs))/np.ravel(SGs) #check FD accuracy
+
+#If you want to run an FD calc for a sizeable number of dipoles, un-comment the chunk below:
+#open('row_index_FD_N.txt','w').close() #replace 'N' in file name with N used in defn of Ndof
+#open('FD_N.npy','wb').close()
+#with open('FD_N.npy','wb') as f:
+#    for i in np.arange(N):
+#        b=nnp.array(first_fd(jacfwd(chi2b),ravelxyz[:Ndof],i))
+#        b.tofile(f)
+#    with open('row_index_FD_N.txt','r+') as g:
+#        g.read()
+#        nnp.savetxt(g,np.array((i,i)))
 
 def hvp(f, x, i):
     Hi=grad(lambda x: np.vdot(grad(f)(x), vectors(i)))(x)
@@ -306,128 +348,30 @@ def hvp(f, x, i):
 
 # In[59]:
 
-
-for i in nnp.arange(0,11722):
-    H=hvp(chi2b,ravelxyz[:31566],i)[i:]
-    with open("HessianMUSE.npy", "rb+") as f:
-            f.read()
-            nnp.save(f, H,allow_pickle=False)
+#Hessian computation for some number n of rows
+#n is a way to break Hessian into chunks and save groups of rows to different files instead of 
+#writing the full matrix to a single file
 
 
-# In[58]:
+#open("row_index_MUSE_n.txt","w").close()
+#open('HessianMUSE_n.npy','wb').close() #replace 'n' in file name with desired number of rows to save to file
+#with open("HessianMUSE_n.npy", "rb+") as f:
+#    for i in nnp.arange(N):
+#        H=nnp.array(hvp(chi2b,ravelxyz[:Ndof],i)[i:])
+#        H.tofile(f)
+#    with open("row_index_MUSE_n.txt","r+") as g:
+#            g.read()
+#            nnp.savetxt(g,nnp.array((i,i,i)))
 
+#finite-difference confirmation of Hessian
 
-#with open("HessianMUSE.npy","rb") as f:
-#    a=nnp.load(f,allow_pickle=False)
-#print(a)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(11723,23444):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_23444.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(23445,35166):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_35166.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(35167,46888):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_46888.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(46889,58610):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_58610.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(58611,70332):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_70332.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(70333,82054):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_82054.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(82055,93776):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_93776.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(93777,105498):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_105498.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(105499,117220):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_117220.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(117221,128942):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_128942.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
-
-
-# In[ ]:
-
-
-#for i in nnp.arange(128943,140664):
-#    H=hvp(chi2b,ravelxyz,i)
-#    with open("HessianMUSE_140664.txt", "r+") as f:
-#            f.read()
-#            nnp.savetxt(f, H)
+#open('row_index_FD_n.txt','w').close()
+#open('FD_n.npy','wb').close()
+#with open('FD_n.npy','wb') as f:
+#    for i in np.arange(n):
+#        b=nnp.array(first_fd(jacfwd(chi2b),ravelxyz[:35166],i))
+#        b.tofile(f)
+#    with open('row_index_FD_n.txt','r+') as g:
+#        g.read()
+#        nnp.savetxt(g,np.array((i,i)))
 
