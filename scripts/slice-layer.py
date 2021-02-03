@@ -1,10 +1,11 @@
-# Updated 3 January 2021
+# Updated 12 January 2021
 
 import MagnetReader as mr
 
 import numpy as np
 import sys
 
+# usage: python slice-layer.py fname.focus
 
 ### USER INPUT ###
 set_layer  = [1,1,1,1,
@@ -24,7 +25,7 @@ N_mag = len( fd.pho )
 N_layers = len(set_layer)
 N_towers = N_mag / N_layers
 print( '  {} total magnets'.format(N_mag) )
-print( '  user sepecified {} layers'.format(N_layers) )
+print( '  user specified {} layers'.format(N_layers) )
 print( '  found {} magnets per layer'.format(N_towers) )
 
 if (N_towers == int(N_towers)):
@@ -40,8 +41,8 @@ for j in np.arange(N_layers):
     arr.append(block)
 
 new_Ic = np.ndarray.flatten(np.array(arr))
-fd.Ic  = new_Ic
-fd.pho = fd.pho*new_Ic
+fd.Ic  = fd.Ic  * new_Ic
+fd.pho = fd.pho * new_Ic
 fd.update_data()
 fd.writefile('slice_'+f)
 

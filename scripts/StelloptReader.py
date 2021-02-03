@@ -5,7 +5,7 @@ from netCDF4 import Dataset
 #from coilpy import FourSurf
 from surface import FourSurf
 
-# Updated 11 Jan 2021
+# Updated 26 Jan 2021
 
 ### Define Angles
 #      User input, ADJUST these!
@@ -15,8 +15,8 @@ N_poloidal_Booz = 64
 N_poloidal_VMEC = 128
 
 # choose plasma boundary
-fboundary = '../POLYHYMNIA/ncsx_2p_vacuum.plasma'
-plasma = FourSurf.read_focus_input(fboundary) # I don't like this, write your own function
+#fboundary = '../POLYHYMNIA/ncsx_2p_vacuum.plasma'
+#plasma = FourSurf.read_focus_input(fboundary) # I don't like this, write your own function
 
 
 # function for reading netCDF output
@@ -248,12 +248,6 @@ class readBOOZ():
 '''
 VMEC
 '''
-
-def plasma_plot(zeta=0,npoints=360):
-    
-    rb,zb = plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
-    plt.plot(rb*100,zb*100,'tab:gray',ls='--',lw=.7)
-
     
 class readVMEC():
     def __init__(self,fname,R=0.3048,a=0.0762):
@@ -270,6 +264,8 @@ class readVMEC():
         self.rmnc = get(f,'rmnc')
         self.zmns = get(f,'zmns')
         self.iota = get(f,'iotaf')
+
+        self.plasma_file = False
         
     def get_surface(self, N, phi=0, s=-1):
         
@@ -286,7 +282,7 @@ class readVMEC():
 
         return R,Z
         
-    def plot_single_angle(self,phi,color='C0'):
+    def plot_single_angle(self,phi,color='C0',legend=True):
         for s in [1,5,10,15,20,25,30,35,40,45,-1]:
             R,Z = self.get_surface(N_poloidal_VMEC ,s=s, phi=phi)
             plt.plot(R*100,Z*100,'%s--'%color,lw=0.7)
@@ -299,12 +295,16 @@ class readVMEC():
         plt.ylabel('Z [cm]', fontsize=12)
         plt.xlabel('R [cm]', fontsize=12)
         
-        plasma_plot(zeta=phi,npoints=360)
+        if (self.plasma_file):
+            self.plasma_plot(zeta=phi,npoints=360)
         
-        plt.plot([],[],'%s--'%color, label=self.tag)
-        plt.legend(loc=2,frameon=False)
-    
+        if (legend):
+            plt.plot([],[],'%s--'%color, label=self.tag)
+            plt.legend(loc=2,frameon=False)
+        else: 
+            plt.plot([],[],'%s--'%color)
         
+
     def plot_vmec_3(self, phi=[0,np.pi/4, np.pi/2]):
     
         plt.figure(figsize=(11,3.5))
@@ -312,9 +312,12 @@ class readVMEC():
         N = len(phi)
 
         colors = ['C0','C1','C2']
+
+        legend = True
         for k in np.arange(N):
             plt.subplot(1,N,k+1)
-            self.plot_single_angle(phi[k], color=colors[k])
+            self.plot_single_angle(phi[k], color=colors[k], legend=legend)
+            legend = False
         plt.tight_layout()
         
     def plot_iota(self, fig=True,ref=True):
@@ -325,13 +328,26 @@ class readVMEC():
 
         if (ref):
             # fixed ref for NCSX
-            plt.plot([0,48],[0.199,0.188],'C8*--',label='target ncsx')
+            #plt.plot([0,1],[0.199,0.188],'C8*--',label='target ncsx')
+            plt.plot([0,1],[0.182,0.197],'C8*--',label='target pg19')
+            #plt.plot([0,48],[0.199,0.188],'C8*--',label='target ncsx')
             
-        plt.plot(self.iota,'.--',label=self.tag)
+        N = len(self.iota)
+        s = np.arange(N) + 1
+        plt.plot(s/N, self.iota, '.--',label=self.tag)
         plt.legend(frameon=False)
 
         plt.title('Rotation Transform')
         plt.ylabel('iota')
         plt.xlabel('surface')
+
+    def load_plasma(self, plasma_file):
+
+        self.plasma_file = plasma_file
+        self.plasma = FourSurf.read_focus_input(plasma_file) # I don't like this, write your own function
+    
+    def plasma_plot(self, zeta=0,npoints=360):
         
-        
+        rb,zb = self.plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
+        plt.plot(rb*100,zb*100,'tab:gray',ls='--',lw=.7)
+    

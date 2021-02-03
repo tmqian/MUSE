@@ -3,9 +3,9 @@
 
 '''
 Reads (multiple) famus logs and plots convergence for BNORM, PMVOL, and DPBIN
-usage: python read-famus-log.py [list-of-logs]
+usage: python read-famus-log.py <list-of-logs>
 
-Last Updated: 23 Dec 2020
+Last Updated: 12 Jan 2021
 '''
 
 
@@ -19,21 +19,30 @@ def read_data(fname):
     # open file
     with open(fname) as f:
         datain = f.readlines()
-        
     # locate data
     j = 0
     for line in datain:
         if (line.find('Quasi-Newton method') > 0):
-            start = j
+            start = j+2
+
+        if (line.find('output') > -1):
+            stop = j
 
         if (line.find('EXITING') > 0):
             stop = j
-
         j+=1
-        
+
+    nsteps = stop - start + 1
+    #print(' {:<50}: {} steps'.format(fname, nsteps) )
+ 
     # extract data
-    data1 = datain[start+2:stop]
+    data1 = datain[start:stop]
     data = np.array(  [line.strip().split(';')[1:-1] for line in data1], float )
+
+    # optional
+
+    chi, dE, bnorm, pmsum, dpbin, pmvol = np.transpose(data)
+    print(' {:<50}, {:4d}, {:e}, {:e}, {:e}'.format(fname, nsteps, bnorm[-1], dpbin[-1], pmvol[-1] ) )
     return data
 
 
@@ -44,10 +53,10 @@ def plot_data(data,fname):
     #global fname
     tag = fname.split('/')[-1]
    
-    data_arr  = [bnorm, pmvol, dpbin]
-    title_arr = ['bnormal', 'pmvol', 'dpbin']
+    data_arr  = [bnorm, dpbin, pmvol]
+    title_arr = ['bnormal', 'dpbin', 'pmvol']
     for i in range(3):
-        if (i==2):
+        if (i==0):
             axs[i].plot(data_arr[i],label=tag)
         else:
             axs[i].plot(data_arr[i])
@@ -57,28 +66,22 @@ def plot_data(data,fname):
 # In[6]:
 
 
-print(' usage: python read-famus-log.py fname')
+print(' usage: python read-famus-log.py <list-log-files>')
 
-fig, axs = plt.subplots(1, 3, figsize=(9,3) )
+print(' {:<50}, {:4}, {:8}, {:8}, {:8}'.format('fname', 'nsteps', 'bnorm', 'dpbin', 'pmvol') )
+fig, axs = plt.subplots(1, 3, figsize=(12,5) )
 for fname in sys.argv[1:]:
-    print(fname)
+    #print(fname)
     try:
         data = read_data(fname)
         plot_data(data,fname)
     except:
         print('  issue with file: %s' % fname)
 
-axs[2].legend()
-plt.suptitle('Famus Log')
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+axs[0].legend(loc=2)
+#plt.suptitle('Famus Log')
+#plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.tight_layout()
 plt.draw() # for interactions
 plt.show()
-
-'''
-try:
-    fname = sys.argv[1]
-except:
-    print(' file note found')
-    sys.exit()
-'''
 

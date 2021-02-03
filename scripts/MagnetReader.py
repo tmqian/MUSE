@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mc
 
 try:
     from coilpy import *
@@ -56,6 +57,7 @@ class ReadFAMUS():
             
             self.data = data
             self.info = info
+            self.fname = fname[:-6]
 
         except:
             print('error reading .focus file')
@@ -83,7 +85,44 @@ class ReadFAMUS():
         self.pho = pho
         self.MT = MT
         self.MP = MP
-      
+
+    # removes magnets with |rho| = 0 to simplify file
+    def skim(self, write=False):
+
+        pho = self.pho
+        
+        mag = np.array( np.abs(pho) > 0, int )
+        #print('Total dipoles:', len(pho))
+        #print('Non-zero dipoles:', np.sum(mag))
+        
+        Ndip = len(pho)
+        
+        new_data = []
+        new_info = []
+        
+        # there's probably a better way to take subset of array in python
+        for j in np.arange(Ndip):
+            if (mag[j] == 0):
+                continue
+            new_data.append( self.data[j] )
+            new_info.append( self.info[j] )
+        
+        self.data = new_data
+        self.info = new_info
+        self.load_data()
+        
+        if (write): 
+            fout = self.fname + '_skim.focus' 
+            self.writefile(fout)
+   
+    # unfinished
+    def halfperiod_to_fulltorus(self):
+        x = self.X 
+        y = self.Y 
+        z = self.Z 
+        p = self.pho 
+        X,Y,Z,P = stellarator_symmetry(x,y,z,p)
+
     # does not modify pho, but writes what ever is there
     def writefile(self, fname, q=1):
         
@@ -105,6 +144,7 @@ class ReadFAMUS():
                 line = '{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \n'.format(*outdata[j])
                 f.write(line)
         print('Wrote %i magnets'%N)
+        print('  new file:', fname)
         
     def mayavi_plot_rho(self,scale=0.03, show_vector=True, vec_scale=0.05, \
                         add_symmetry=False, flip_sign=False, q=1, legend=True):
@@ -201,8 +241,8 @@ class ReadFAMUS():
         return px[0],tx2[0],projec
 
 
+        # compression slice map (old)
     def plot_slices(self,N_layers=18):
-
         u,v,projec = self.to_towers(N_layers=N_layers)
 
         plt.figure(figsize=(9,12))
@@ -238,6 +278,101 @@ class ReadFAMUS():
         #plt.suptitle(fd.fname)
         plt.tight_layout()
         
+ 
+    def slice_map(self,N_layers=18):
+        # Plots magnet distribution, layer by layer
+        u,v,projec = self.to_towers(N_layers=N_layers)
+        pho = self.pho
+        N_towers = int(len(pho)/ N_layers)
+        print(len(pho), N_towers)
+        m = np.reshape(self.pho, (N_layers,N_towers))
+
+        plt.figure(figsize=(9,12))
+
+        plt.subplot(5,4,1)
+        plt.tricontourf(u,v,projec,N_layers,cmap='RdBu_r',extend='both')
+        plt.colorbar()
+        plt.title('Total Towers')
+        plt.xlabel('toroidal half period')
+        plt.ylabel('poloidal angle')
+
+        plt.axhline(np.pi/2,ls='--',color='C1')
+        plt.axhline(3*np.pi/2,ls='--',color='C1')
+        plt.axvline(np.pi/4,ls='--',color='C1')
+
+        levels = np.linspace(-.9,.9,10)
+        #levels = [-.9,-.7,-.5,-.3,-.1,.1,.3,.5,.7,.9]
+        norm = mc.BoundaryNorm(levels, 256)
+ 
+        for s in np.arange(N_layers):
+            plt.subplot(5,4,s+2)
+            plt.tricontourf(u,v,m[s],cmap='jet',extend='both', levels=levels, norm=norm) 
+            #plt.clim(-1,1) 
+            plt.colorbar()
+            plt.title('Layer %i' % (s+1) )
+         #   plt.xlabel('toroidal half period')
+         #   plt.ylabel('poloidal angle')
+
+            plt.axhline(np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axhline(3*np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axvline(np.pi/4,ls='--',color='C1',lw=0.7)
+
+
+        plt.suptitle(self.fname)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        
+        
+        #plt.plot([],[],label=self.fname)
+        #plt.legend(loc=1)
+
+ 
+    def dpbin_map(self,N_layers=18):
+        # Plots magnet distribution, layer by layer
+        u,v,projec = self.to_towers(N_layers=N_layers)
+        pho = self.pho
+        N_towers = int(len(pho)/ N_layers)
+        #print(len(pho), N_towers)
+
+        plt.figure(figsize=(9,12))
+
+        plt.subplot(5,4,1)
+        plt.tricontourf(u,v,projec,N_layers,cmap='RdBu_r',extend='both')
+        plt.colorbar()
+        plt.title('Total Towers')
+        plt.xlabel('toroidal half period')
+        plt.ylabel('poloidal angle')
+
+        plt.axhline(np.pi/2,ls='--',color='C1')
+        plt.axhline(3*np.pi/2,ls='--',color='C1')
+        plt.axvline(np.pi/4,ls='--',color='C1')
+
+        levels = np.linspace(-.9,.9,10)
+        #levels = [-.9,-.7,-.5,-.3,-.1,.1,.3,.5,.7,.9]
+        norm = mc.BoundaryNorm(levels, 256)
+
+        m = np.reshape(self.pho, (N_layers,N_towers))
+
+        sgn = np.array(m>0,int)*2 - 1
+        M = np.abs(m)
+        dpbin = M*(1-M) * sgn
+
+        for s in np.arange(N_layers):
+            plt.subplot(5,4,s+2)
+            plt.tricontourf(u,v,10*dpbin[s],cmap='jet',extend='both', levels=levels, norm=norm) 
+            #plt.tricontourf(u,v,dpbin[s],cmap='jet',extend='both')#, levels=levels, norm=norm) 
+            #plt.clim(-1,1) 
+            plt.colorbar()
+            plt.title('Layer %i' % (s+1) )
+         #   plt.xlabel('toroidal half period')
+         #   plt.ylabel('poloidal angle')
+
+            plt.axhline(np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axhline(3*np.pi/2,ls='--',color='C1',lw=0.7)
+            plt.axvline(np.pi/4,ls='--',color='C1',lw=0.7)
+
+
+        plt.suptitle('10x dpbin: '+self.fname)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
         
     def plot_symm(self, export=False, fig=True, show_pipes=True,N_layers=18):
@@ -258,10 +393,16 @@ class ReadFAMUS():
         
         if (fig):
             plt.figure()
-
-        plt.tricontourf(T2,P2,M2,10,extend='both',cmap='RdBu_r')
+ 
+        #levels = np.linspace(-15,15,8)
+        #levels = np.linspace(-N_layers, N_layers, N_layers+1)
+        levels = [-15,-11,-7,-5,-1,1,5,7,11,15]
+        norm = mc.BoundaryNorm(levels, 256)
+        plt.tricontourf(T2,P2,M2,cmap='jet',extend='both', levels=levels, norm=norm) 
+ 
+#        plt.tricontourf(T2,P2,M2,10,extend='both',cmap='RdBu_r')
         plt.colorbar()
-        
+              
         if (show_pipes):
             plt.axvline(np.pi/4,ls='--',color='C1')
             plt.axvline(5*np.pi/4,ls='--',color='C1')
@@ -321,8 +462,16 @@ def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05,
    takes a half period, creates full torus (assuming NFP=2)
    may also assume which half period we start with
 '''
-# this fuction can probably be improved
-def stellarator_symmetry(X,Y,Z,I):
+def stellarator_symmetry(x, y, z, m):
+
+    X = np.concatenate((x,-x,-x,x))
+    Y = np.concatenate((y,y,-y,-y))
+    Z = np.concatenate((z,-z,z,-z))
+    M = np.concatenate((m,-m,m,-m))
+    
+    return X, Y, Z, M
+# this fuction can probably be improved, DELETE
+def stellarator_symmetry_old(X,Y,Z,I):
     
     xyzi_1 = np.transpose([X,Y,Z,I])
     xyzi_2 = np.transpose([-X,Y,-Z,-I])
@@ -330,9 +479,10 @@ def stellarator_symmetry(X,Y,Z,I):
     x,y,z,i = np.transpose(np.concatenate((xyzi_1, xyzi_2)))
     xyz = np.transpose([x,y,z])
 
-    n = [0,0,1]
-    t = np.pi
-    temp = [rotate(r,n,t) for r in xyz]
+    axis = [0,0,1]
+    angle = np.pi
+    # rotates all the vectors by pi about z-axis 
+    temp = [rotate(r,axis,angle) for r in xyz]
     x2,y2,z2 = np.transpose(temp)
     
     XYZI_1 = np.transpose([x,y,z,i])
