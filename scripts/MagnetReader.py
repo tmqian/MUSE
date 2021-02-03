@@ -57,6 +57,7 @@ class ReadFAMUS():
             
             self.data = data
             self.info = info
+            self.fname = fname[:-6]
 
         except:
             print('error reading .focus file')
@@ -84,7 +85,44 @@ class ReadFAMUS():
         self.pho = pho
         self.MT = MT
         self.MP = MP
-      
+
+    # removes magnets with |rho| = 0 to simplify file
+    def skim(self, write=False):
+
+        pho = self.pho
+        
+        mag = np.array( np.abs(pho) > 0, int )
+        #print('Total dipoles:', len(pho))
+        #print('Non-zero dipoles:', np.sum(mag))
+        
+        Ndip = len(pho)
+        
+        new_data = []
+        new_info = []
+        
+        # there's probably a better way to take subset of array in python
+        for j in np.arange(Ndip):
+            if (mag[j] == 0):
+                continue
+            new_data.append( self.data[j] )
+            new_info.append( self.info[j] )
+        
+        self.data = new_data
+        self.info = new_info
+        self.load_data()
+        
+        if (write): 
+            fout = self.fname + '_skim.focus' 
+            self.writefile(fout)
+   
+    # unfinished
+    def halfperiod_to_fulltorus(self):
+        x = self.X 
+        y = self.Y 
+        z = self.Z 
+        p = self.pho 
+        X,Y,Z,P = stellarator_symmetry(x,y,z,p)
+
     # does not modify pho, but writes what ever is there
     def writefile(self, fname, q=1):
         
@@ -424,8 +462,16 @@ def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05,
    takes a half period, creates full torus (assuming NFP=2)
    may also assume which half period we start with
 '''
-# this fuction can probably be improved
-def stellarator_symmetry(X,Y,Z,I):
+def stellarator_symmetry(x, y, z, m):
+
+    X = np.concatenate((x,-x,-x,x))
+    Y = np.concatenate((y,y,-y,-y))
+    Z = np.concatenate((z,-z,z,-z))
+    M = np.concatenate((m,-m,m,-m))
+    
+    return X, Y, Z, M
+# this fuction can probably be improved, DELETE
+def stellarator_symmetry_old(X,Y,Z,I):
     
     xyzi_1 = np.transpose([X,Y,Z,I])
     xyzi_2 = np.transpose([-X,Y,-Z,-I])
@@ -433,9 +479,10 @@ def stellarator_symmetry(X,Y,Z,I):
     x,y,z,i = np.transpose(np.concatenate((xyzi_1, xyzi_2)))
     xyz = np.transpose([x,y,z])
 
-    n = [0,0,1]
-    t = np.pi
-    temp = [rotate(r,n,t) for r in xyz]
+    axis = [0,0,1]
+    angle = np.pi
+    # rotates all the vectors by pi about z-axis 
+    temp = [rotate(r,axis,angle) for r in xyz]
     x2,y2,z2 = np.transpose(temp)
     
     XYZI_1 = np.transpose([x,y,z,i])
