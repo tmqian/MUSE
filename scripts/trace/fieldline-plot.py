@@ -8,7 +8,8 @@ from matplotlib import cm
 
 from coilpy import *
 #fboundary = 'ncsx_2p_vacuum.plasma'
-fboundary = 'PG2p.qa20.plasma'
+fboundary = 'PG2p.qa19.plasma'
+#fboundary = 'PG2p.qa20.plasma'
 plasma = FourSurf.read_focus_input(fboundary)
 
 def plasma_plot(zeta=0,npoints=360):
