@@ -336,13 +336,15 @@ def hvp(f, x, i): #hessian-vector product function-- computes ith row of the Hes
 # In[31]:
 
 
-open("row_index_config_Ndof.npy","wb").close() #initialize binary file to tell you what row the calculation stopped on if runtime is exceeded
-open('config_Ndof.npy','wb').close() #initialize binary file for Hessian data
-with open("config_Ndof.npy", "rb+") as f:
-    for i in nnp.arange(0,Ndof):
+Nrows=Ndof #change this to compute some desired number of rows of the Hessian-- this will allow you to break up the calculation so as to not exceed memory or run-time.
+open("row_index_config_Nrows.npy","wb").close() #initialize binary file to tell you what row the calculation stopped on if runtime is exceeded
+open('config_Nrows.npy','wb').close() #initialize binary file for Hessian data
+#I title my files with 'config' as the name of the dipole configuration, and with 'N
+with open("config_Nrows.npy", "rb+") as f:
+    for i in nnp.arange(0,Nrows):
         H=nnp.array(hvp(chi2b,ravelxyz[:Ndof],i)[i:]) #save Hessian row-by-row
         H.tofile(f)
-        with open("row_index_config_Ndof.npy","rb+") as g:
+        with open("row_index_config_Nrows.npy","rb+") as g:
                 idx=nnp.array((i,i)) #for some reason errors appear if this array is 1D, so I'm writing the index value twice
                 idx.tofile(g) #save row index number
 
