@@ -7,7 +7,7 @@ from coilpy import *
 import sys
 
 # usage: python plot-fieldlines.py file.h5 boundary.plasma
-# updated: 19 Jan 2021
+# updated: 21 Jan 2021
 
 fin = sys.argv[1]
 fboundary = sys.argv[2]
@@ -23,12 +23,12 @@ def plasma_plot(zeta=0,npoints=360):
 def field_plot(phi=0):
     angle = phi*phiaxis[-1]/np.pi/npoinc
 
-    for surf in np.arange(0,128):
+    for surf in np.arange(0,nlines):
         r = r_lines[phi::npoinc,surf]
         z = z_lines[phi::npoinc,surf]
 
         if (surf%12 == 0):
-            plt.plot(r,z,'.',color=cmap[surf], ms=1,label='%i / 128'%(surf))
+            plt.plot(r,z,'.',color=cmap[surf], ms=1,label='{} / {}'.format(surf,nlines) )
         else:
             plt.plot(r,z,'.',color=cmap[surf], ms=1)
 
@@ -61,6 +61,7 @@ r_lines = get(f,'R_lines')
 z_lines = get(f,'Z_lines')
 phiaxis = get(f,'phiaxis')
 npoinc = get(f,'npoinc')[0]
+nlines = get(f,'nlines')[0]
 plasma = FourSurf.read_focus_input(fboundary)
 
 
@@ -68,11 +69,14 @@ plasma = FourSurf.read_focus_input(fboundary)
 temp = cm.rainbow(np.linspace(0, 1, 64))
 cmap = np.concatenate((temp,temp[::-1]))
 
-plt.figure(figsize=(9,4))
-plt.subplot(1,2,1)
+plt.figure(figsize=(12,5))
+plt.subplot(1,3,1)
 field_plot(phi=0)
-plt.subplot(1,2,2)
-field_plot(phi=12)
+plt.subplot(1,3,2)
+field_plot( phi=int(npoinc/4) )
+plt.subplot(1,3,3)
+field_plot( phi=int(npoinc/2) )
+
 title = fin[11:-3]
 plt.suptitle(title)
 
@@ -82,7 +86,7 @@ fout = 'trace-%s.png' % title
 plt.savefig(fout)
 print('wrote to file: %s' % fout)
 
-fout = 'trace-%s.pdf' % title
-plt.savefig(fout)
-print('wrote to file: %s' % fout)
+#fout = 'trace-%s.pdf' % title
+#plt.savefig(fout)
+#print('wrote to file: %s' % fout)
 

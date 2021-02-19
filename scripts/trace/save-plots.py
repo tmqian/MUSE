@@ -11,4 +11,5 @@ for f in files:
 
     print(' reading: %s' % f)
     #os.system('srun -n 4 -t 1:00:00 --mem=8GB python plot_fieldline.py %s &'%f)
-    os.system('python fieldline-plot.py %s &'%f)
+    os.system('python scripts/trace/plot-fieldlines.py %s PG2p.qa19.plasma &'%f)
+    #os.system('python fieldline-plot.py %s &'%f)

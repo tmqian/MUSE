@@ -56,7 +56,7 @@ def plot_data(data,fname):
     data_arr  = [bnorm, dpbin, pmvol]
     title_arr = ['bnormal', 'dpbin', 'pmvol']
     for i in range(3):
-        if (i==0):
+        if (i==2):
             axs[i].plot(data_arr[i],label=tag)
         else:
             axs[i].plot(data_arr[i])
@@ -78,7 +78,7 @@ for fname in sys.argv[1:]:
     except:
         print('  issue with file: %s' % fname)
 
-axs[0].legend(loc=2)
+axs[2].legend(loc=2)
 #plt.suptitle('Famus Log')
 #plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 plt.tight_layout()

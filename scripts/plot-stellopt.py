@@ -2,7 +2,7 @@ import StelloptReader as sr
 import sys
 import matplotlib.pyplot as plt
 
-# updated 11 Jan 2021
+# updated 5 February 2021
 '''
   usage: python plot_stellopt.py <file_tag>
 
@@ -23,7 +23,8 @@ try:
     f_plasma = sys.argv[2]
     print('  loading plasma file: ', f_plasma)
 except:
-    f_plasma = '../famus/estell2p.qa15.plasma'
+    #f_plasma = '../famus/estell2p.qa15.plasma'
+    f_plasma = 'PG2p.qa19.plasma'
 vd.load_plasma(f_plasma)
 vd.plot_vmec_3()
 plt.draw()
