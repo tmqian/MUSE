@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# Updated 3 February
-
-
-# In[4]:
+# Updated 15 February 2021
 
 from coilpy import *
 import jax.numpy as np
@@ -62,14 +59,16 @@ q = fd.q
 
 ox,oy,oz,pho = mr.stellarator_symmetry(ox,oy,oz,pho)
 xyz_dip=np.array((ox,oy,oz))
-rho = mm[0]*pho**q
+#rho = mm[0]*pho**q
 
 print('  after symmetry N dipoles:', len(ox) )
 
 mx = np.sin(mt)*np.cos(mp)
 my = np.sin(mt)*np.sin(mp)
 mz = np.cos(mt)
-mx,my,mz,Mm = mr.stellarator_symmetry(mx,my,mz,mm)
+mx,my,mz,mm = mr.stellarator_symmetry(mx,my,mz,mm)
+
+rho = np.abs(mm)*pho**q
 mx = mx*rho
 my = my*rho
 mz = mz*rho
@@ -93,7 +92,7 @@ print('dpbin:', dpbin)
 #these are the integer indices used to index over theta and zeta on the plasma surface
 Ntheta = h5_coilsurf.Nteta
 Nzeta  = h5_coilsurf.Nzeta
-print('Grid Ntheta, Nzeta:', Ntheta,Nzeta)
+#print('Grid Ntheta, Nzeta:', Ntheta,Nzeta)
 thetai = np.arange(Ntheta)
 zetaj  = np.arange(Nzeta)
 zet,thet = np.meshgrid(zetaj,thetai, indexing='ij')
@@ -236,7 +235,7 @@ BdotN   = BMdotN + Bn_coil
 #see if your chi2b value is equivalent to the one output by FOCUS
 chib = np.sum(BdotN*BdotN*h5_coilsurf.nn * np.pi**2/(Ntheta*Nzeta)/2 )
 
-print('chib:',chib)
+print('bnorm:',chib)
 #check
 if (_debug):
     #extract FOCUS's calculation of B dot n
@@ -301,7 +300,7 @@ def hvp(f, x, i):
     #        np.save(f, Hi)
     return Hi
 
-print('  quick paste: {}, {}, {}'.format(chib, dpbin, pmvol))
+print('  bnorm, pmvol, dpbin: {}, {}, {}'.format(chib, pmvol, dpbin))
 print('finished')
 sys.exit()
 

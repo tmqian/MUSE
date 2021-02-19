@@ -3,8 +3,10 @@
 
 '''
     usage: python script.py fname.focus N_slices')
-    last updated : 4 Feb 2021
+    last updated : 5 Feb 2021
 '''
+
+_save = True
 
 # In[1]:
 
@@ -111,6 +113,7 @@ print('  N Dipoles, Slices, Towers: {} {} {}'.format(n_dip,N_slices,N_towers) )
 
 # unfold data into tower map
 mat = np.reshape(Pho,(N_slices,N_towers)).T
+arg = np.reshape(np.arange(n_dip), (N_slices,N_towers)).T
 N_base = compute_base(Ic)
 
 above = np.array( mat > 0, int )
@@ -128,50 +131,27 @@ print('n towers w both       :', np.sum(both) )
 # prepare plots
 pos_points = (above[ np.argwhere(both>0)] * np.arange(N_slices))[:,0].T
 neg_points = (below[ np.argwhere(both>0)] * np.arange(N_slices))[:,0].T
-
+arg_points = arg[ np.argwhere(both>0)][:,0]
+if (_save):
+    csv = 'wyrm-map-%s.csv'% sys.argv[1][:-6]
+    np.savetxt(csv, arg_points, delimiter=',',fmt='%i')
+    print('Wrote to file %s' % csv)
 plt.figure(figsize=(12,6))
 for j in np.arange(N_slices):
     plt.plot(pos_points[j]+1,'r.')
     plt.plot(neg_points[j]+1,'b.')
 plt.title( '%i towers w both :: %s ' % (np.sum(both), sys.argv[1]) )
 plt.yticks( np.arange(1,20) )
+#xticks = np.arange(1,len(both))
+#plt.axes().yaxis.set_minor_locator(xticks)
 plt.ylim(3,20)
 plt.ylabel('layer number')
 plt.xlabel('tower index')
-#plt.xlabel('tower index (toroidal first)')
 plt.grid()
 fout = 'wyrm-map_'+ file.split('/')[-1][:-6] + '.png'
-plt.savefig(fout)
-print('Wrote to file %s' % fout)
+
+if (_save):
+    plt.savefig(fout)
+    print('Wrote to file %s' % fout)
 plt.draw()
 plt.show()
-sys.exit()
-
-
-### unused (!) from compress copy
-# compress towers
-
-com = np.array([ compress(mat[j]) for j in np.arange(N_towers)])
-com_pho = np.ravel(com.T) * Ic    # ignores magnets which are switched off
-data_out = np.transpose([ X,Y,Z,Ic,M,com_pho,Lc,Mp,Mt])
-dname = [ 'pm{:08d}'.format(j) for j in np.arange(n_dip) ]
-
-# write
-
-fout = 'wyrm-map_'+ file.split('/')[-1][:-6]
-with open(fout,'w') as f:
-    
-    for j in np.arange(3):
-        f.write(data_in[j])
-
-    for j in np.arange(n_dip):
-        x,y,z, ic,m,bpho,lc,mp,mt = data_out[j]
-        line = '{:4}, {:4}, {:13}, {:15.8e}, {:15.8e}, {:15.8e}, {:2d}, {:15.8e}, {:15.8e}, {:2d}, {:15.8e}, {:15.8e},\n'.format(
-            2,2,dname[j],
-            x,y,z, 
-            int(ic),m,bpho,
-            int(lc),mp,mt )
-        f.write(line)
-
-print('Wrote to file %s' % fout)
-

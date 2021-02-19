@@ -180,7 +180,8 @@ class readBOOZ():
         if (fig):
             plt.figure()
         plt.plot(tax_b/np.pi, modB, label=self.tag)
-        plt.title('Magnetic Well (s=%.2f)' % s, fontsize=14)
+        plt.title('|B| along field line (s=%.2f)' % s, fontsize=14)
+        #plt.title('Magnetic Well (s=%.2f)' % s, fontsize=14)
         plt.xlabel('N field periods', fontsize=14)
         plt.ylabel('|B| [T]', fontsize=14)
         plt.legend(loc=2)

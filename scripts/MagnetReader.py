@@ -9,7 +9,7 @@ except:
 #from mayavi import mlab
 
 '''
-    Last Updated: 11 Jan 2021
+    Last Updated: 4 Feb 2021
 '''
 
 class ReadFAMUS():    
@@ -37,6 +37,7 @@ class ReadFAMUS():
             data = np.array([ line.strip().split(',')[3:12] for line in datain[3:] ], float)
             info = np.array([ line.strip().split(',')[:3] for line in datain[3:] ])
             # can also try to read N magnets, and q
+            N_mag, q_moment = np.array(datain[1].strip().split(), int)
         
             #ox,  oy,  oz,  Ic,  M_0,  pho,  Lc,  mp,  mt
             X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(data)
@@ -58,6 +59,8 @@ class ReadFAMUS():
             self.data = data
             self.info = info
             self.fname = fname[:-6]
+            self.Nmag = N_mag
+            self.q    = q_moment
 
         except:
             print('error reading .focus file')
@@ -91,7 +94,7 @@ class ReadFAMUS():
 
         pho = self.pho
         
-        mag = np.array( np.abs(pho) > 0, int )
+        mag = np.array( np.abs(pho) > 1e-4, int )
         #print('Total dipoles:', len(pho))
         #print('Non-zero dipoles:', np.sum(mag))
         
@@ -107,8 +110,8 @@ class ReadFAMUS():
             new_data.append( self.data[j] )
             new_info.append( self.info[j] )
         
-        self.data = new_data
-        self.info = new_info
+        self.data = np.array(new_data)
+        self.info = np.array(new_info)
         self.load_data()
         
         if (write): 
@@ -128,7 +131,7 @@ class ReadFAMUS():
         
         N = len(self.pho)
         h1 = '# Total number of coils,  momentq \n'
-        h2 = '     {},     {}\n'.format(N,q)
+        h2 = '     {}     {}\n'.format(N,q) # removed comma to match FAMUS
         h3 = '# coiltype, symmetry,  coilname,  ox,  oy,  oz,  Ic,  M_0,  pho,  Lc,  mp,  mt \n'
         
         outdata = np.transpose([self.type, self.symm, self.name,
@@ -322,8 +325,6 @@ class ReadFAMUS():
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
         
-        #plt.plot([],[],label=self.fname)
-        #plt.legend(loc=1)
 
  
     def dpbin_map(self,N_layers=18):
@@ -470,25 +471,6 @@ def stellarator_symmetry(x, y, z, m):
     M = np.concatenate((m,-m,m,-m))
     
     return X, Y, Z, M
-# this fuction can probably be improved, DELETE
-def stellarator_symmetry_old(X,Y,Z,I):
-    
-    xyzi_1 = np.transpose([X,Y,Z,I])
-    xyzi_2 = np.transpose([-X,Y,-Z,-I])
-    
-    x,y,z,i = np.transpose(np.concatenate((xyzi_1, xyzi_2)))
-    xyz = np.transpose([x,y,z])
-
-    axis = [0,0,1]
-    angle = np.pi
-    # rotates all the vectors by pi about z-axis 
-    temp = [rotate(r,axis,angle) for r in xyz]
-    x2,y2,z2 = np.transpose(temp)
-    
-    XYZI_1 = np.transpose([x,y,z,i])
-    XYZI_2 = np.transpose([x2,y2,z2,i])
-    X2,Y2,Z2,I2 = np.transpose(np.concatenate((XYZI_1, XYZI_2)))
-    return X2,Y2,Z2,I2
 
 # manipulating magnets
 def norm(v):
