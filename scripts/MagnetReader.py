@@ -9,7 +9,7 @@ except:
 #from mayavi import mlab
 
 '''
-    Last Updated: 11 Jan 2021
+    Last Updated: 16 Feb 2021
 '''
 
 class ReadFAMUS():    
@@ -123,7 +123,7 @@ class ReadFAMUS():
         p = self.pho 
         X,Y,Z,P = stellarator_symmetry(x,y,z,p)
 
-    # does not modify pho, but writes what ever is there
+    # does not modify pho, but writes whatever is there
     def writefile(self, fname, q=1):
         
         N = len(self.pho)
@@ -146,33 +146,6 @@ class ReadFAMUS():
         print('Wrote %i magnets'%N)
         print('  new file:', fname)
         
-    def mayavi_plot_rho(self,scale=0.03, show_vector=True, vec_scale=0.05, \
-                        add_symmetry=False, flip_sign=False, q=1, legend=True):
-        
-        X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(self.data)
-        
-        if (add_symmetry):
-            X,Y,Z,pho = stellarator_symmetry(X,Y,Z,pho)
-        
-        rho = pho**q
-        mlab.points3d(X,Y,Z,rho,scale_mode='none',scale_factor=scale)
-        
-        if (show_vector):
-            
-            X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(self.data)
-        
-            U = np.sin(MT) * np.cos(MP)
-            V = np.sin(MT) * np.sin(MP)
-            W = np.cos(MT)
-            
-            if (flip_sign):
-                U,V,W = flip_magnets(U,V,W,pho)
-            mlab.quiver3d(X,Y,Z,U,V,W,color=(1,1,0), scale_factor=vec_scale)
-            
-        if(legend):
-            mlab.scalarbar()
-            
-        mlab.show()
         
     def hist_pho(self,q=1,bins=20,new_fig=False):
         
@@ -240,44 +213,6 @@ class ReadFAMUS():
 
         return px[0],tx2[0],projec
 
-
-        # compression slice map (old)
-    def plot_slices(self,N_layers=18):
-        u,v,projec = self.to_towers(N_layers=N_layers)
-
-        plt.figure(figsize=(9,12))
-
-        plt.subplot(5,4,1)
-        plt.tricontourf(u,v,projec,N_layers,cmap='RdBu_r',extend='both')
-        plt.colorbar()
-        plt.title('Total Towers')
-        plt.xlabel('toroidal half period')
-        plt.ylabel('poloidal angle')
-
-        plt.axhline(np.pi/2,ls='--',color='C1')
-        plt.axhline(3*np.pi/2,ls='--',color='C1')
-        plt.axvline(np.pi/4,ls='--',color='C1')
-
-
-        for s in np.arange(1,20):
-            plt.subplot(5,4,s+1)
-
-            plt.tricontourf(u,v,
-                            np.array(abs(projec)< s+.1, int)
-                            *np.array(abs(projec)>s-.1, int),N_layers,cmap='plasma')#,extend='both')
-          #  plt.colorbar()
-            plt.title('exactly %i slice'%s)
-         #   plt.xlabel('toroidal half period')
-         #   plt.ylabel('poloidal angle')
-
-            plt.axhline(np.pi/2,ls='--',color='C1',lw=0.7)
-            plt.axhline(3*np.pi/2,ls='--',color='C1',lw=0.7)
-            plt.axvline(np.pi/4,ls='--',color='C1',lw=0.7)
-
-
-        #plt.suptitle(fd.fname)
-        plt.tight_layout()
-        
  
     def slice_map(self,N_layers=18):
         # Plots magnet distribution, layer by layer
@@ -322,9 +257,6 @@ class ReadFAMUS():
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
         
-        #plt.plot([],[],label=self.fname)
-        #plt.legend(loc=1)
-
  
     def dpbin_map(self,N_layers=18):
         # Plots magnet distribution, layer by layer
@@ -414,17 +346,20 @@ class ReadFAMUS():
 ### end class function
 def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05, 
                     add_symmetry=False, flip_sign=False, skip_switch=False, filter_blank=0,
-                    q=1, legend=True):
+                    q=1, legend=True, plot_M=False):
     
     from mayavi import mlab
+    
+    if (skip_switch):
+        self.skim()
 
     X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(self.data)
     
-    if (skip_switch):
-        X = X * Ic
-        Y = Y * Ic
-        Z = Z * Ic
-        pho = pho * Ic
+#     if (skip_switch):
+#         X = X * Ic
+#         Y = Y * Ic
+#         Z = Z * Ic
+#         pho = pho * Ic
         
     if (filter_blank > 0):
         
@@ -439,6 +374,8 @@ def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05,
         X,Y,Z,pho = stellarator_symmetry(X,Y,Z,pho)
 
     rho = pho**q
+    if (plot_M):
+        rho = rho*M
     mlab.points3d(X,Y,Z,rho,scale_mode='none',scale_factor=scale)
 
     if (show_vector):
