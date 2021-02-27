@@ -8,13 +8,13 @@
    The table lives in batch_name.setup.
    Read sample.input and b-sample.sh 
 
-   Updated: 5 Feb 2021
+   Updated: 19 Feb 2021
 '''
 
 import sys
 import numpy as np
 
-path = './scripts/famus-launcher/'
+path = './scripts/launch/'
 f_sample = path+'input.5pga19'
 b_sample = path+'b32-sample.sh'
 N_shell  = 1
@@ -165,7 +165,7 @@ for j in np.arange( len(files) ):
     #write_batch(new_batch, handle)
     #fsh.write('sbatch %s\n' % new_batch)
 
-    cmd = 'xstelloptv2 input.{} > {}.log &'.format(handle,handle)
+    cmd = 'xstelloptv2 input.{} > stellopt-{}.log &'.format(handle,handle)
     fsh.write('{}\n'.format(cmd) )
 
 print(' exporting script: {}'.format(f_script) )

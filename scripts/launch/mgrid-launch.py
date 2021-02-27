@@ -8,13 +8,13 @@
    The table lives in batch_name.setup.
    Read sample.input and b-sample.sh 
 
-   Updated: 4 Feb 2021
+   Updated: 19 Feb 2021
 '''
 
 import sys
 import numpy as np
 
-path = './scripts/famus-launcher/'
+path = './scripts/launch/'
 f_sample = path+'sample-mgrid.input'
 b_sample = path+'b32-sample.sh'
 N_shell  = 1

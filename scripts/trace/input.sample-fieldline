@@ -219,10 +219,14 @@ RBC(6,10) =	-5.97303E-06	ZBS(6,10) =	-4.96153E-06
  NR = 201                          ! Number of radial gridpoints, overridden if using mgrid
  NPHI = 72                         ! Number of toroidal gridpoints, overridden if using mgrid
  NZ = 201                          ! Number of vertical gridpoints, overridden if using mgrid
- RMIN = 0.20                       ! Minimum extent of radial grid, overridden if using mgrid
- RMAX = 0.40                       ! Maximum extent of radial grid, overridden if using mgrid
- ZMIN = -0.10                      ! Minimum extent of vertical grid, overridden if using mgrid
- ZMAX = 0.10                       ! Maximum extent of radial grid, overridden if using mgrid
+ RMIN = 0.22                       ! Minimum extent of radial grid, overridden if using mgrid
+ RMAX = 0.39                       ! Maximum extent of radial grid, overridden if using mgrid
+ ZMIN = -0.085                      ! Minimum extent of vertical grid, overridden if using mgrid
+ ZMAX =  0.085                      ! Maximum extent of radial grid, overridden if using mgrid
+! RMIN = 0.20                       ! Minimum extent of radial grid, overridden if using mgrid
+! RMAX = 0.40                       ! Maximum extent of radial grid, overridden if using mgrid
+! ZMIN = -0.10                      ! Minimum extent of vertical grid, overridden if using mgrid
+! ZMAX = 0.10                       ! Maximum extent of radial grid, overridden if using mgrid
  PHIMIN = 0.0                      ! Minimum extent of toroidal grid, overridden if using mgrid
  PHIMAX = 0.628                    ! Maximum extent of toroidal grid, overrideen if using mgrid
  MU = 0.0                          ! Fieldline diffusion (mu=sqrt(D*tau*2))
