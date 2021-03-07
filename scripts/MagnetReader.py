@@ -8,13 +8,15 @@ except:
     print('  note: coilpy package unavailable')
 
 '''
-    Last Updated: 23 Feb 2021
+    Last Updated: 2 March 2021
 '''
 
 class ReadFAMUS():    
 
-    def __init__(self,fname):
+    def __init__(self,fname, N_layers=18):
         self.fname = fname
+       
+        self.N_layers = N_layers
         self.readfile(fname)
         
 
@@ -35,8 +37,14 @@ class ReadFAMUS():
   
             data = np.array([ line.strip().split(',')[3:12] for line in datain[3:] ], float)
             info = np.array([ line.strip().split(',')[:3] for line in datain[3:] ])
+        
+        
             # can also try to read N magnets, and q
-            N_mag, q_moment = np.array(datain[1].strip().split(), int)
+            if (datain[1].find(',') < 0):
+                N_dipoles, q_moment = np.array(datain[1].strip().split(), int)
+            else:
+                #print('error reading N_mag, q_moment: trying (,) instead of ( )')
+                N_dipoles, q_moment = np.array(datain[1].strip().split(','), int)
         
             #ox,  oy,  oz,  Ic,  M_0,  pho,  Lc,  mp,  mt
             X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(data)
@@ -58,8 +66,16 @@ class ReadFAMUS():
             self.data = data
             self.info = info
             self.fname = fname[:-6]
-            self.Nmag = N_mag
+            self.N_dipoles = N_dipoles
             self.q    = q_moment
+            
+            if (N_dipoles != len(data)):
+                print('  N_mag != len(data): check famus file')
+            
+            N_towers = N_dipoles / self.N_layers
+            if ((N_towers - int(N_towers)) != 0):
+                print('  N_tower - int(N_tower) != 0: check N_layers (default 18)')
+            self.N_towers = int(N_towers)
 
         except:
             print('error reading .focus file')
@@ -342,7 +358,47 @@ class ReadFAMUS():
 
             plt.axvline(3*np.pi/4,ls='--',color='C1')
             plt.axvline(7*np.pi/4,ls='--',color='C1')
+    
+                
+                
+    def load_rings(self, N_poloidal=89):
+
+        u,v = self.to_uv()
+        v_idx = np.array(v*100,int)
+
+        rings = []
+        j = 0
+        while j < self.N_towers:
+
+            count = 1
+            while ( np.abs(v[j+1] - v[j]) < 1./N_poloidal):
+                count += 1
+                j += 1
+
+            rings.append(count)
+            j += 1
+
+        self.rings = np.array(rings)
+        return np.array(rings)
+              
+                
+    '''
+        u: j toroidal
+        v: i poloidal
+        w: k slice
+
+        note - (u,v) starts from 0 while w starts from 1
+        such that w=5 points to the 5th layer
+    '''
+    def idx_3d(self,u,v,w):
         
+        try:
+            rings = self.rings
+        except:
+            print('  initializing poloidal rings')
+            rings = self.load_rings()
+        
+        return u + np.sum(rings[:v]) + self.N_towers*(w-1)
 
 ### end class function
 def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05, 
@@ -396,6 +452,40 @@ def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05,
 
     mlab.show()
 
+    
+# applies stellarator symmetry and plots VV
+# untested
+def mayavi_full_torus(self):
+    
+    self.skim()
+    x,y,z,p = stellarator_symmetry(self.ox,self.oy,self.oz,self.pho)
+    
+    def make_torus():
+        # I want to plot a solid torus, representing the VV, for the filter view
+        N_zeta = 256
+        N_theta = 64
+        U = np.linspace(0,np.pi*2,N_zeta)#, endpoint=False)
+        V = np.linspace(0,np.pi*2,N_theta)#, endpoint=False)
+        a = 0.0847
+        r = 0.3048
+
+        R = r + a*np.cos(V)
+        H = a*np.sin(V)
+
+        X = [[ rr*np.cos(u) for u in U ] for rr in R]
+        Y = [[ rr*np.sin(u) for u in U ] for rr in R]
+        Z = [[ h            for u in U ] for h  in H]
+        
+        return X,Y,Z
+    
+    X,Y,X = make_torus()
+    mlab.mesh(X,Y,Z, color=(1,1,1))
+   
+    mlab.points3d(x,y,z,p,scale_mode='none',scale_factor=0.005)
+    mlab.show()
+
+
+    
 '''
    takes a half period, creates full torus (assuming NFP=2)
    may also assume which half period we start with
