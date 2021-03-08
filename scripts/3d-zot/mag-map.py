@@ -2,14 +2,20 @@
     This program reads a FAMUS file, (should run shift-idx.py first)
     and plots a map of dipoles in (u,v) space
 
-    idx: 1-18 plots the +/- dipoles in each layer
-    idx: 0 (default) integrates over all layers, labeling each tower with the outer most slice
+    usage: python mag-map.py fname.focus <idx>
+
+    The optional index argument toggles the following output
+      idx: 1-18 plots the +/- dipoles in each layer
+      idx:  0 integrates over all layers, labeling each tower with positive, negative, or mixed
+      idx: -1 integrates over all layers, labeling each tower highest slice's layer index
+    If no <idx> is given, option -1 is selected by default.
 
     User Switch:
     _save: (bool) set TRUE to save .png
-    _pipe: set to 'X' or 'Y' to show only x-pipe or y-pipe instead of the full half period
+    _pipe: set to 'X' or 'Y' to show only x-pipe or y-pipe instead of the full half period ('none' shows both)
+    _legend: set to 'L' or 'R' for positioning legend on left or right side
 
-    Updated: 27 February 2021
+    Updated: 7 March 2021
 '''
 
 import MagnetReader as mr
@@ -20,9 +26,13 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mc
 import matplotlib.cm as cm
 
-### USER SWITCH ###
+### USER INPUT ###
+
 _save = False
-_pipe = 'Y'
+_pipe = None
+_legend = 'L'
+
+###################
 
 def slice_map(self,single_layer=-1,N_layers=18,new_fig=True, shift=False):
     
@@ -48,8 +58,28 @@ def slice_map(self,single_layer=-1,N_layers=18,new_fig=True, shift=False):
         for s in np.arange(N_layers):
             mag = np.argwhere( np.abs(m[s]) > 0)
             plt.plot(u[mag],v[mag],'.',label='layer %i' % (s+1) )
-        plt.legend(frameon=True,fontsize=8,loc=2)
+        if (_legend == 'L'):
+            plt.legend(frameon=True,fontsize=8,loc=2)
+        if (_legend == 'R'):
+            plt.legend(frameon=True,fontsize=8,loc=1)
 
+    # new option
+    elif (single_layer == 0):
+        above = np.sum( np.array(m>0,int), axis=0)
+        below = np.sum( np.array(m<0,int), axis=0)
+        both  = above*below
+
+        idx1 = np.argwhere(above)
+        idx2 = np.argwhere(below)
+        idx3 = np.argwhere(both)
+        plt.plot(u[idx1],v[idx1],'C3.',label='above')
+        plt.plot(u[idx2],v[idx2],'C0.',label='below')
+        plt.plot(u[idx3],v[idx3],'C4.',label='both')
+
+        if (_legend == 'L'):
+            plt.legend(frameon=True,fontsize=8,loc=2)
+        if (_legend == 'R'):
+            plt.legend(frameon=True,fontsize=8,loc=1)
     else:
         s = single_layer - 1
         above = np.argwhere(m[s] > 0)
@@ -79,11 +109,15 @@ def idx_map(self,N_layers=18, new_fig=False, shift=False):
     
     if (new_fig):
         plt.figure()
-    cs = plt.tricontour(u,v, ux,np.max(ux), colors='grey', linewidths=0.7)#,cmap=cm.Greys_r)
-    plt.clabel(cs, fontsize=8, fmt='%i')
+    us = plt.tricontour(u,v, ux,np.max(ux), colors='grey', linewidths=0.5)
+    plt.clabel(us, fontsize=8, fmt='%i')
+    us_heavy = plt.tricontour(u,v, ux, int(np.max(ux)/5) , colors='grey', linewidths=1.2)
+    plt.clabel(us_heavy, fontsize=10, fmt='%i')
     
-    vs = plt.tricontour(u,v, vx,np.max(vx), colors='y', linewidths=0.5)#,cmap=cm.Greys_r)
+    vs = plt.tricontour(u,v, vx, np.max(vx), colors='y', linewidths=0.5)
     plt.clabel(vs, fontsize=8, fmt='%i')
+    vs_heavy = plt.tricontour(u,v, vx, int(np.max(vx)/5) , colors='y', linewidths=1.2)
+    plt.clabel(vs_heavy, fontsize=10, fmt='%i')
     
     plt.tight_layout()
 
@@ -146,6 +180,7 @@ if (_pipe == 'Y'):
     fout = 'map-y-{}.png'.format(s, fname[:-6])
 
 if (_save):
+    print('  saving file:', fout)
     plt.savefig(fout)
 
 plt.draw()
