@@ -381,7 +381,21 @@ class ReadFAMUS():
         self.rings = np.array(rings)
         return np.array(rings)
               
-                
+                    
+    def load_dots(self):
+        
+        rings = self.load_rings()
+    
+        dots = []
+        y = 0
+        for k in rings:
+            for x in np.arange(k):
+                dots.append((x,y))
+            y += 1
+            
+        return np.array(dots)
+    
+
     '''
         u: j toroidal
         v: i poloidal
@@ -514,3 +528,39 @@ def rotate(v,n,t):
     return r
 
 
+def write_scad(data, fname='test.txt'):
+    # format: data = np.transpose((X,Y,Z,u,v,w,m))
+    
+    with open(fname,'w') as f:
+        f.write('N_DIP = %i; \n'% len(data) )
+        f.write('data = [')
+        for line in data[:-1]:
+            if line[-1]==0:
+                continue
+            f.write('[ {}, {}, {}, {:.6}, {:.6}, {:.6}, {}],\n'.format(*line))
+
+        f.write('[ {}, {}, {}, {:.6}, {:.6}, {:.6}, {}]];'.format(*(data[-1]) ))
+
+
+# given list of xyz vectors, return nhat relative to a torus
+def xyz_to_n(xyz,R0=0.3048):
+
+    nhat = []
+
+    N = len(xyz)
+    for k in np.arange(N):
+
+        x,y,z = xyz[k]
+        u = np.arctan2(y,x)
+
+        x0 = R0 * np.cos(u)
+        y0 = R0 * np.sin(u)
+        z0 = 0
+
+        r  = xyz[k]
+        r0 = np.array( [x0,y0,z0] )
+        n = norm(r-r0)
+
+        nhat.append(n)
+
+    return np.array(nhat)
