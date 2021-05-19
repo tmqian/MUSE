@@ -8,7 +8,8 @@ except:
     print('  note: coilpy package unavailable')
 
 '''
-    Last Updated: 2 March 2021
+    Last Updated: 14 May 2021 - adding 3D option
+    Last Updated: 26 April 2021
 '''
 
 class ReadFAMUS():    
@@ -86,6 +87,9 @@ class ReadFAMUS():
             self.data = np.transpose([self.X, self.Y, self.Z,
             self.Ic , self.M,  self.pho,
             self.Lc, self.MP, self.MT] )
+            
+    def update_info(self):
+            self.info = np.transpose([self.type, self.symm, self.name] )
             
     def load_data(self):
         X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(self.data)
@@ -571,3 +575,62 @@ def xyz_to_n(xyz,R0=0.3048):
         nhat.append(n)
 
     return np.array(nhat)
+
+
+### new file format
+class Magnet_3D():
+
+    def __init__(self,fname, R=0.3048):
+
+        # read file
+        with open(fname) as f:
+            datain = f.readlines()
+        data  = np.array([ line.strip().split(',') for line in datain[1:] ], float)
+        print('Data size:', data.shape)
+        self.data = data
+
+        # unpack data
+        n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z, n4x, n4y, n4z, \
+        s1x, s1y, s1z, s2x, s2y, s2z, s3x, s3y, s3z, s4x, s4y, s4z = data.T
+
+        # sort into vectors
+        self.n1 = np.array([n1x,n1y,n1z]).T
+        self.n2 = np.array([n2x,n2y,n2z]).T
+        self.n3 = np.array([n3x,n3y,n3z]).T
+        self.n4 = np.array([n4x,n4y,n4z]).T
+
+        self.s1 = np.array([s1x,s1y,s1z]).T
+        self.s2 = np.array([s2x,s2y,s2z]).T
+        self.s3 = np.array([s3x,s3y,s3z]).T
+        self.s4 = np.array([s4x,s4y,s4z]).T
+
+        # find center of mass, for each face
+        self.nc = (self.n1 + self.n2 + self.n3 + self.n4)/4
+        self.sc = (self.s1 + self.s2 + self.s3 + self.s4)/4
+
+        # center of mass for body
+        self.com = (self.nc + self.sc)/2
+
+        # go to (u,v,a) coordinates to find whether each magnet points out or in
+        self.R = R
+        nx,ny,nz = self.nc.T
+        nr = np.sqrt(nx*nx + ny*ny) - R
+
+        self.nu = np.arctan2(ny,nx)
+        self.nv = np.arctan2(nz,nr)
+        self.na = np.sqrt(nz*nz + nr*nr)
+
+        sx,sy,sz = self.sc.T
+        sr = np.sqrt(sx*sx + sy*sy) - R
+
+        self.su = np.arctan2(sy,sx)
+        self.sv = np.arctan2(sz,sr)
+        self.sa = np.sqrt(sz*sz + sr*sr)
+
+        # polarity North:1 points out from torus, South:-1 points into torus
+        self.sgn = np.array( (self.na - self.sa) > 0, int )*2 - 1
+        length = np.abs( (self.na - self.sa) / 0.0015875 )  # 1/16"
+        self.len = np.array( length + 0.1, int )
+
+        # write mayavi code for drawing cubes
+        # add color to illustrate N/S

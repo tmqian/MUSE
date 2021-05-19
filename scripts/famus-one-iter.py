@@ -48,7 +48,7 @@ mm = fd.M
 pho = fd.pho
 mp = fd.MP
 mt = fd.MT
-length = fd.Nmag
+length = fd.N_dipoles
 q = fd.q
 
 # In[10]:
