@@ -1,5 +1,5 @@
 import jax.numpy as np
-from jax import grad, vmap
+from jax import grad, vmap, jit
 
 
 # Exact Analytic field from Cifta
@@ -102,6 +102,7 @@ def Bvec(target,source):
     B     = -1*np.sum(gradV, axis=0)
     return B
 
+jit_Bvec = jit(Bvec)
 
 def split(A):
     Ax,Ay,Az = A.T

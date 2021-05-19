@@ -1,1 +1,1 @@
-scripts/MagnetReader.py
+../scripts/MagnetReader.py
