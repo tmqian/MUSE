@@ -141,6 +141,13 @@ class ReadFAMUS():
         p = self.pho 
         X,Y,Z,P = stellarator_symmetry(x,y,z,p)
 
+        ## inside stellarator_symmetry
+        #X = np.concatenate((x,-x,-x,x))
+        #Y = np.concatenate((y,y,-y,-y))
+        #Z = np.concatenate((z,-z,z,-z))
+        #M = np.concatenate((m,-m,m,-m))
+
+
     # does not modify pho, but writes whatever is there
     def writefile(self, fname, q=1):
         
