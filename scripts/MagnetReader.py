@@ -578,6 +578,12 @@ def xyz_to_n(xyz,R0=0.3048):
 
 
 ### new file format
+'''
+    This reads Doug's file format, where magnets are saved as 3D volumes.
+    Each magnet is encoded by 8 points in space, representing the corners.
+    The convention is n1,n2,n3,n4 followed by s1,s2,s3,s4, where the difference between faces
+    is used to encode orientation. This assumes the PM is magnetized parallel to axis.
+'''
 class Magnet_3D():
 
     def __init__(self,fname, R=0.3048):
@@ -588,6 +594,7 @@ class Magnet_3D():
         data  = np.array([ line.strip().split(',') for line in datain[1:] ], float)
         print('Data size:', data.shape)
         self.data = data
+        self.N_magnets = len(data)
 
         # unpack data
         n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z, n4x, n4y, n4z, \
@@ -634,3 +641,123 @@ class Magnet_3D():
 
         # write mayavi code for drawing cubes
         # add color to illustrate N/S
+
+        # define orientations for Cifta
+        self.nvec = self.nc - self.sc # not normalized
+        #zhat = np.array([0,0,1.])
+        #self.pvec = np.cross(zhat,self.nvec)
+        self.pvec = self.compute_phat()
+        self.H = np.linalg.norm(self.nvec, axis=1)
+        self.L = self.compute_lengths()
+        self.M =  1.1658e6 * np.ones(self.N_magnets) # hard coded for N-52 (Br = 1.465, KJ Magnetics)
+
+    def compute_lengths(self):
+        n12 = np.linalg.norm(self.n1 - self.n2, axis=1)
+        n23 = np.linalg.norm(self.n2 - self.n3, axis=1)
+        n34 = np.linalg.norm(self.n3 - self.n4, axis=1)
+        n41 = np.linalg.norm(self.n4 - self.n1, axis=1)
+        s12 = np.linalg.norm(self.s1 - self.s2, axis=1)
+        s23 = np.linalg.norm(self.s2 - self.s3, axis=1)
+        s34 = np.linalg.norm(self.s3 - self.s4, axis=1)
+        s41 = np.linalg.norm(self.s4 - self.s1, axis=1)
+
+        L = np.mean( np.array([n12,n23,n34,n41,s12,s23,s34,s41]), axis=0)
+        return L
+    
+    def compute_phat(self):
+        
+        x,y,z = self.com.T
+        phi = np.array([-y,x,z*0]).T
+        return phi 
+
+    def export_source(self):
+
+        x0,y0,z0 = self.com.T
+        nx,ny,nz = self.nvec.T
+        ux,uy,uz = self.pvec.T
+        H = self.H
+        L = self.L
+        M = self.M
+
+        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
+        return source
+
+    # dipole approximation
+    def export_target_2(self):
+
+        x1,y1,z1 = self.nc.T
+        x2,y2,z2 = self.sc.T
+
+        X = np.concatenate([x1,x2])
+        Y = np.concatenate([y1,y2])
+        Z = np.concatenate([z1,z2])
+
+        target = np.array([X,Y,Z]).T
+        return target
+
+    # octopole approximation
+    def export_target_8(self):
+
+        x1,y1,z1 = self.n1.T
+        x2,y2,z2 = self.n2.T
+        x3,y3,z3 = self.n3.T
+        x4,y4,z4 = self.n4.T
+        x5,y5,z5 = self.s1.T
+        x6,y6,z6 = self.s2.T
+        x7,y7,z7 = self.s3.T
+        x8,y8,z8 = self.s4.T
+
+        X = np.concatenate([x1,x2,x3,x4,x5,x6,x7,x8])
+        Y = np.concatenate([y1,y2,y3,y4,y5,y6,y7,y8])
+        Z = np.concatenate([z1,z2,z3,z4,z5,z6,z7,z8])
+
+        target = np.array([X,Y,Z]).T
+        return target
+
+    # get 4 points from each face center, avoiding singularities at the edge
+    def export_target_8c(self):
+
+        def mean(x,y):
+            return (x+y)/2
+        x1,y1,z1 = mean( self.n1 , self.nc ).T
+        x2,y2,z2 = mean( self.n2 , self.nc ).T 
+        x3,y3,z3 = mean( self.n3 , self.nc ).T 
+        x4,y4,z4 = mean( self.n4 , self.nc ).T 
+        x5,y5,z5 = mean( self.s1 , self.sc ).T 
+        x6,y6,z6 = mean( self.s2 , self.sc ).T 
+        x7,y7,z7 = mean( self.s3 , self.sc ).T 
+        x8,y8,z8 = mean( self.s4 , self.sc ).T 
+
+        X = np.concatenate([x1,x2,x3,x4,x5,x6,x7,x8])
+        Y = np.concatenate([y1,y2,y3,y4,y5,y6,y7,y8])
+        Z = np.concatenate([z1,z2,z3,z4,z5,z6,z7,z8])
+
+        target = np.array([X,Y,Z]).T
+        return target
+
+    # get 4 points from 2 layers, for each N/S
+    def export_target_16c(self):
+
+        n1 = (self.n1 + self.nc) / 2
+        n2 = (self.n2 + self.nc) / 2
+        n3 = (self.n3 + self.nc) / 2
+        n4 = (self.n4 + self.nc) / 2
+        s1 = (self.s1 + self.sc) / 2
+        s2 = (self.s2 + self.sc) / 2
+        s3 = (self.s3 + self.sc) / 2
+        s4 = (self.s4 + self.sc) / 2
+
+        nquad = np.array([n1,n2,n3,n4])
+        squad = np.array([s1,s2,s3,s4])
+        avec  = (self.nc - self.sc)/2
+
+        tower = np.array([ nquad + avec*0.75, 
+                           nquad + avec*0.25,
+                           squad - avec*0.25,
+                           squad - avec*0.75  ])
+
+        target = np.reshape( tower, (4*4*self.N_magnets,3) )
+        return target
+
+
+

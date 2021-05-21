@@ -1,6 +1,7 @@
 import jax.numpy as np
 from jax import grad, vmap, jit
 
+import time
 
 # Exact Analytic field from Cifta
 
@@ -104,11 +105,6 @@ def Bvec(target,source):
 
 jit_Bvec = jit(Bvec)
 
-def split(A):
-    Ax,Ay,Az = A.T
-    Amag = np.sqrt( np.sum(A*A, axis=1) )
-    return Ax,Ay,Az,Amag
-
 
 ## first loop target, then source
 # this has the advantage of putting sources (which we want to sum over) on axis=0
@@ -130,3 +126,95 @@ H = L
 
 # useful for ref
 Br = M * 4*np.pi/1e7
+
+
+### define helper functions
+
+def split(A):
+    t = Timer()
+    t.start('transpose')
+    #Ax,Ay,Az = A.T
+    Ax = A[:,0]
+    Ay = A[:,1]
+    Az = A[:,2]
+    t.stop()
+    #Amag = np.sqrt( np.sum(A*A, axis=1) )
+    t.start('norm')
+    Amag = np.linalg.norm(A, axis=1)
+    t.stop()
+    return Ax,Ay,Az,Amag
+
+
+def calc_B(targets,source):
+    
+    t = Timer()
+    t.start('B calc')
+    print('  source shape:', source.shape)
+    print('  target shape:', targets.shape)
+    N_steps = int(targets.shape[0]/5000) + 1
+    arr = np.arange(N_steps)*5000
+    
+    Bout = [ jit_Bvec(targets[j:j+5000], source) for j in arr]
+    Btot = np.concatenate(Bout)
+    t.stop()
+    
+    return Btot
+
+
+def write_data(data,fout):
+    
+    print('Preparing to write file')
+    
+    with open(fout,'w') as f:
+        f.write('X [m], Y[m], Z[m], Bx[T], By[T], Bz[T] \n')
+        for line in data:
+            x,y,z,bx,by,bz = line
+            out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(x,y,z,bx,by,bz)
+            print(out,file=f)
+    print('  Wrote to %s' % fout)
+
+
+# not useful
+def write_data_T(targets,fields,fout):
+    
+    print('Preparing to write file')
+    
+    M = len(targets)
+
+    with open(fout,'w') as f:
+        f.write('X [m], Y[m], Z[m], Bx[T], By[T], Bz[T] \n')
+        for j in np.arange(M):
+            x,y,z    = targets[j]
+            bx,by,bz =  fields[j]
+            out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(x,y,z,bx,by,bz)
+            print(out,file=f)
+    print('  Wrote to %s' % fout)
+
+
+
+
+### Timer function
+
+class TimerError(Exception):
+    """A custom exception used to report errors in use of Timer class"""
+
+class Timer:
+    def __init__(self):
+        self._start_time = None
+
+    def start(self, msg=""):
+        """Start a new timer"""
+        if self._start_time is not None:
+            raise TimerError(f"Timer is running. Use .stop() to stop it")
+
+        print('Start',msg)
+        self._start_time = time.perf_counter()
+
+    def stop(self):
+        """Stop the timer, and report the elapsed time"""
+        if self._start_time is None:
+            raise TimerError(f"Timer is not running. Use .start() to start it")
+
+        elapsed_time = time.perf_counter() - self._start_time
+        self._start_time = None
+        print(f"  Elapsed time: {elapsed_time:0.4f} seconds")
