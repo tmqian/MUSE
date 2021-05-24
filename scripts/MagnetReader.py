@@ -651,6 +651,8 @@ class Magnet_3D():
         self.L = self.compute_lengths()
         self.M =  1.1658e6 * np.ones(self.N_magnets) # hard coded for N-52 (Br = 1.465, KJ Magnetics)
 
+        #self.xhat, self.yhat = self.compute_xy()
+
     def compute_lengths(self):
         n12 = np.linalg.norm(self.n1 - self.n2, axis=1)
         n23 = np.linalg.norm(self.n2 - self.n3, axis=1)
@@ -670,6 +672,22 @@ class Magnet_3D():
         phi = np.array([-y,x,z*0]).T
         return phi 
 
+    # local grid coordinates 
+    # (!!) assumes C-shape 1-2-3-4 definition
+    def compute_xy(self):
+
+        # normalized to 1
+        xhat = (self.n2 - self.n3 + self.s2 - self.s3
+                              + self.n1 - self.n4 + self.s1 - self.s4) / 8
+
+        yhat = (self.n2 - self.n1 + self.s2 - self.s1
+                              + self.n3 - self.n4 + self.s3 - self.s4) / 8
+
+        # normalized to sidelength L/2
+        Xhat = xhat * self.L[:,np.newaxis] / 2
+        Yhat = yhat * self.L[:,np.newaxis] / 2
+
+        return Xhat, Yhat
 
     # for the Ciftja force
     def export_source(self):
@@ -772,6 +790,7 @@ class Magnet_3D():
 #        return target
 
     # get 4 points from 2 layers, for each N/S
+    # deprecated
     def export_target_16c(self):
 
         n1 = (self.n1 + self.nc) / 2
@@ -796,4 +815,28 @@ class Magnet_3D():
         return target
 
 
+    # given integer n, computes n x n grid on each of top and bottom faces (returns 2n**2 points as 3-vectors)
+    def export_target_n2(self,N):
+    
+        # setup grid (N2, M, 3)
+        xhat, yhat = self.compute_xy()
+        M = self.N_magnets
+
+        ax  = np.linspace(-1,1,N, endpoint=False) + 1/N
+        #ax  = np.linspace(-1,1,N+2)[1:-1]
+        grid = np.meshgrid(ax,ax)
+        xs,ys = np.reshape(grid,(2,N**2))
+
+        xp =  np.reshape( (xhat[np.newaxis,:,:].T * xs), (3, M, N**2) ).T
+        yp =  np.reshape( (yhat[np.newaxis,:,:].T * ys), (3, M, N**2) ).T
+
+        G = xp + yp
+
+        # return targets
+        ng = self.nc + G
+        sg = self.sc + G
+        gns = np.concatenate( [ng,sg], axis=0 )
+
+        targets = np.reshape(gns, (2*M*N**2, 3) )
+        return targets
 

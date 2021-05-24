@@ -220,7 +220,8 @@ def calc_B(targets,source, B_func=jit_Bvec):
     arr = np.arange(N_steps)*5000
     
     Bout = [ B_func(targets[j:j+5000], source) for j in arr]
-    Btot = np.concatenate(Bout,axis=1).block_until_ready()
+    block = np.concatenate(Bout,axis=1)
+    Btot = np.sum( block, axis=0) .block_until_ready()
     t.stop()
     
     return Btot
