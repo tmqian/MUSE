@@ -670,6 +670,8 @@ class Magnet_3D():
         phi = np.array([-y,x,z*0]).T
         return phi 
 
+
+    # for the Ciftja force
     def export_source(self):
 
         x0,y0,z0 = self.com.T
@@ -682,7 +684,18 @@ class Magnet_3D():
         source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
         return source
 
-    # dipole approximation
+    def export_source_dipole(self):
+
+        x0,y0,z0 = self.com.T
+        nx,ny,nz = self.nvec.T
+        H = self.H
+        L = self.L
+        M = self.M
+
+        source = np.array([x0,y0,z0,nx,ny,nz, H,L,M]).T
+        return source
+
+    # dipole approximation: returns center of top and bottom face
     def export_target_2(self):
 
         x1,y1,z1 = self.nc.T
@@ -695,7 +708,7 @@ class Magnet_3D():
         target = np.array([X,Y,Z]).T
         return target
 
-    # octopole approximation
+    # octopole approximation: returns 8 corners (deprecated)
     def export_target_8(self):
 
         x1,y1,z1 = self.n1.T
@@ -714,26 +727,49 @@ class Magnet_3D():
         target = np.array([X,Y,Z]).T
         return target
 
-    # get 4 points from each face center, avoiding singularities at the edge
+
+    # get 4 points for each face N/S
     def export_target_8c(self):
 
-        def mean(x,y):
-            return (x+y)/2
-        x1,y1,z1 = mean( self.n1 , self.nc ).T
-        x2,y2,z2 = mean( self.n2 , self.nc ).T 
-        x3,y3,z3 = mean( self.n3 , self.nc ).T 
-        x4,y4,z4 = mean( self.n4 , self.nc ).T 
-        x5,y5,z5 = mean( self.s1 , self.sc ).T 
-        x6,y6,z6 = mean( self.s2 , self.sc ).T 
-        x7,y7,z7 = mean( self.s3 , self.sc ).T 
-        x8,y8,z8 = mean( self.s4 , self.sc ).T 
+        n1 = (self.n1 + self.nc) / 2
+        n2 = (self.n2 + self.nc) / 2
+        n3 = (self.n3 + self.nc) / 2
+        n4 = (self.n4 + self.nc) / 2
+        s1 = (self.s1 + self.sc) / 2
+        s2 = (self.s2 + self.sc) / 2
+        s3 = (self.s3 + self.sc) / 2
+        s4 = (self.s4 + self.sc) / 2
 
-        X = np.concatenate([x1,x2,x3,x4,x5,x6,x7,x8])
-        Y = np.concatenate([y1,y2,y3,y4,y5,y6,y7,y8])
-        Z = np.concatenate([z1,z2,z3,z4,z5,z6,z7,z8])
+        nquad = np.array([n1,n2,n3,n4])
+        squad = np.array([s1,s2,s3,s4])
 
-        target = np.array([X,Y,Z]).T
+        tower = np.array([ nquad, squad  ])
+        
+        target = np.reshape( tower, (8*self.N_magnets,3) )
         return target
+
+
+
+#    # get 4 points from each face center, avoiding singularities at the edge
+#    def export_target_8c(self):
+#
+#        def mean(x,y):
+#            return (x+y)/2
+#        x1,y1,z1 = mean( self.n1 , self.nc ).T
+#        x2,y2,z2 = mean( self.n2 , self.nc ).T 
+#        x3,y3,z3 = mean( self.n3 , self.nc ).T 
+#        x4,y4,z4 = mean( self.n4 , self.nc ).T 
+#        x5,y5,z5 = mean( self.s1 , self.sc ).T 
+#        x6,y6,z6 = mean( self.s2 , self.sc ).T 
+#        x7,y7,z7 = mean( self.s3 , self.sc ).T 
+#        x8,y8,z8 = mean( self.s4 , self.sc ).T 
+#
+#        X = np.concatenate([x1,x2,x3,x4,x5,x6,x7,x8])
+#        Y = np.concatenate([y1,y2,y3,y4,y5,y6,y7,y8])
+#        Z = np.concatenate([z1,z2,z3,z4,z5,z6,z7,z8])
+#
+#        target = np.array([X,Y,Z]).T
+#        return target
 
     # get 4 points from 2 layers, for each N/S
     def export_target_16c(self):

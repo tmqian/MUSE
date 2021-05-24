@@ -3,7 +3,7 @@ from jax import grad, vmap, jit
 
 import time
 
-# Exact Analytic field from Cifta
+### Exact Analytic field from Cifta
 
 def F(a,b,c):
     d = a*np.arcsinh( b/np.sqrt(a*a + c*c) )
@@ -23,6 +23,7 @@ def V_local(r,s,q):
     w = F(1-x, 1-y, z) + F(1-x, 1+y, z) + F(1+x, 1-y, z) + F(1+x, 1+y, z)
     return q/s * w / 8
 
+# magnetization potential (homogeneous internal field)
 def V_mag(r,H,L,M):
     x,y,z = r
     
@@ -97,15 +98,6 @@ def Vg_wrap(target,source):
     return V_general(r1,r0,n1,n2,H,L,M)
 
 
-def Bvec(target,source):
-
-    gradV = vg2(target,source)
-    B     = -1*np.sum(gradV, axis=0)
-    return B
-
-jit_Bvec = jit(Bvec)
-
-
 ## first loop target, then source
 # this has the advantage of putting sources (which we want to sum over) on axis=0
 
@@ -113,6 +105,19 @@ jit_Bvec = jit(Bvec)
 vg1 = vmap( grad(Vg_wrap),(0,None))
 vg2 = vmap( vg1,(None,0))
 
+import pdb
+
+def Bvec(target,source):
+
+    gradV = vg2(target,source)
+    #pdb.set_trace()
+    #foo = mask_self_interactions(8,len(source) )
+    #gradV = gradV*foo
+    #B     = -1*np.sum(gradV, axis=0)
+    B = -1*gradV
+    return B
+
+jit_Bvec = jit(Bvec)
 
 
 # Cacluate V scalar potential
@@ -126,6 +131,65 @@ H = L
 
 # useful for ref
 Br = M * 4*np.pi/1e7
+
+'''
+    Dipole potential
+    r1 is test charge location
+    r0 is COM of source magnet
+    n1 is orientation of magnet (not necessarily normalized)
+    H is height of magnet (separation of electrostatic plates)
+    L is the side length of face of magnet (assumed to be SQ)
+    M is the magnetization of the material [A/m]
+'''
+
+
+def V_dipole(r1,r0,n1,H,L,M):
+
+    nhat = n1 / np.sqrt( np.dot(n1,n1) )
+    r = r1 - r0 
+
+    # compute scalar potential
+    m = nhat * M * (L*L*H)              # [A*m*m] dipole moment
+    r2 = np.dot(r,r)
+    rhat = r / np.sqrt(r2)
+    V = np.dot(m,rhat) / r2 / 1e7       # times mu0/4pi
+
+    return V
+
+
+def Vd_wrap(target,source):
+
+    x1,y1,z1 = target
+    x0,y0,z0,nx,ny,nz, H,L,M = source
+
+    r1 = np.array([x1,y1,z1])
+
+    r0 = np.array([x0,y0,z0])
+    n1 = np.array([nx,ny,nz])
+
+    return V_dipole(r1,r0,n1,H,L,M)
+
+# Calculate B vector field
+vd1 = vmap( grad(Vd_wrap),(0,None))
+vd2 = vmap( vd1,(None,0))
+
+from scipy.linalg import block_diag
+
+def mask_self_interactions(m,n):
+
+    a = np.array([np.ones(m)]).T
+    d = block_diag(*([a] * n))
+    return 1-d
+
+
+
+def Bvec_dipole(target,source):
+
+    gradV = vd2(target,source)
+    B     = -1*np.sum(gradV, axis=0)
+    return B
+
+jit_Bvec_dipole = jit(Bvec_dipole)
 
 
 ### define helper functions
@@ -145,8 +209,9 @@ def split(A):
     return Ax,Ay,Az,Amag
 
 
-def calc_B(targets,source):
-    
+def calc_B(targets,source, B_func=jit_Bvec):
+    # takes arbitrary B_function, defaults to Cifja
+
     t = Timer()
     t.start('B calc')
     print('  source shape:', source.shape)
@@ -154,12 +219,28 @@ def calc_B(targets,source):
     N_steps = int(targets.shape[0]/5000) + 1
     arr = np.arange(N_steps)*5000
     
-    Bout = [ jit_Bvec(targets[j:j+5000], source) for j in arr]
-    Btot = np.concatenate(Bout)
+    Bout = [ B_func(targets[j:j+5000], source) for j in arr]
+    Btot = np.concatenate(Bout,axis=1).block_until_ready()
     t.stop()
     
     return Btot
 
+def calc_B2(targets,source, B_func=jit_Bvec):
+    # takes arbitrary B_function, defaults to Cifja
+
+    t = Timer()
+    t.start('B calc')
+    print('  source shape:', source.shape)
+    print('  target shape:', targets.shape)
+    N_steps = int(targets.shape[0]/5000) + 1
+    pad_source = np.pad(source, N_steps*5000)
+    arr = np.arange(N_steps)*5000
+    
+    Bout = [ B_func(targets[j:j+5000], pad_source) for j in arr]
+    Btot = np.concatenate(Bout,axis=1)
+    t.stop()
+    
+    return Btot
 
 def write_data(data,fout):
     
@@ -172,24 +253,6 @@ def write_data(data,fout):
             out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(x,y,z,bx,by,bz)
             print(out,file=f)
     print('  Wrote to %s' % fout)
-
-
-# not useful
-def write_data_T(targets,fields,fout):
-    
-    print('Preparing to write file')
-    
-    M = len(targets)
-
-    with open(fout,'w') as f:
-        f.write('X [m], Y[m], Z[m], Bx[T], By[T], Bz[T] \n')
-        for j in np.arange(M):
-            x,y,z    = targets[j]
-            bx,by,bz =  fields[j]
-            out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(x,y,z,bx,by,bz)
-            print(out,file=f)
-    print('  Wrote to %s' % fout)
-
 
 
 
