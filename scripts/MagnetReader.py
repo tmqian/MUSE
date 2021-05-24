@@ -727,7 +727,7 @@ class Magnet_3D():
         return target
 
     # octopole approximation: returns 8 corners (deprecated)
-    def export_target_8(self):
+    def export_corners(self):
 
         x1,y1,z1 = self.n1.T
         x2,y2,z2 = self.n2.T
@@ -748,51 +748,7 @@ class Magnet_3D():
 
     # get 4 points for each face N/S
     def export_target_8c(self):
-
-        n1 = (self.n1 + self.nc) / 2
-        n2 = (self.n2 + self.nc) / 2
-        n3 = (self.n3 + self.nc) / 2
-        n4 = (self.n4 + self.nc) / 2
-        s1 = (self.s1 + self.sc) / 2
-        s2 = (self.s2 + self.sc) / 2
-        s3 = (self.s3 + self.sc) / 2
-        s4 = (self.s4 + self.sc) / 2
-
-        nquad = np.array([n1,n2,n3,n4])
-        squad = np.array([s1,s2,s3,s4])
-
-        tower = np.array([ nquad, squad  ])
         
-        target = np.reshape( tower, (8*self.N_magnets,3) )
-        return target
-
-
-
-#    # get 4 points from each face center, avoiding singularities at the edge
-#    def export_target_8c(self):
-#
-#        def mean(x,y):
-#            return (x+y)/2
-#        x1,y1,z1 = mean( self.n1 , self.nc ).T
-#        x2,y2,z2 = mean( self.n2 , self.nc ).T 
-#        x3,y3,z3 = mean( self.n3 , self.nc ).T 
-#        x4,y4,z4 = mean( self.n4 , self.nc ).T 
-#        x5,y5,z5 = mean( self.s1 , self.sc ).T 
-#        x6,y6,z6 = mean( self.s2 , self.sc ).T 
-#        x7,y7,z7 = mean( self.s3 , self.sc ).T 
-#        x8,y8,z8 = mean( self.s4 , self.sc ).T 
-#
-#        X = np.concatenate([x1,x2,x3,x4,x5,x6,x7,x8])
-#        Y = np.concatenate([y1,y2,y3,y4,y5,y6,y7,y8])
-#        Z = np.concatenate([z1,z2,z3,z4,z5,z6,z7,z8])
-#
-#        target = np.array([X,Y,Z]).T
-#        return target
-
-    # get 4 points from 2 layers, for each N/S
-    # deprecated
-    def export_target_16c(self):
-
         n1 = (self.n1 + self.nc) / 2
         n2 = (self.n2 + self.nc) / 2
         n3 = (self.n3 + self.nc) / 2
@@ -802,17 +758,11 @@ class Magnet_3D():
         s3 = (self.s3 + self.sc) / 2
         s4 = (self.s4 + self.sc) / 2
 
-        nquad = np.array([n1,n2,n3,n4])
-        squad = np.array([s1,s2,s3,s4])
-        avec  = (self.nc - self.sc)/2
+        tower = np.array([n1,n2,n3,n4,s1,s2,s3,s4])
 
-        tower = np.array([ nquad + avec*0.75, 
-                           nquad + avec*0.25,
-                           squad - avec*0.25,
-                           squad - avec*0.75  ])
-
-        target = np.reshape( tower, (4*4*self.N_magnets,3) )
+        target = np.reshape( tower.T,(3, self.N_magnets*8) ).T
         return target
+
 
 
     # given integer n, computes n x n grid on each of top and bottom faces (returns 2n**2 points as 3-vectors)
@@ -837,6 +787,27 @@ class Magnet_3D():
         sg = self.sc + G
         gns = np.concatenate( [ng,sg], axis=0 )
 
-        targets = np.reshape(gns, (2*M*N**2, 3) )
+        #targets = np.reshape(gns, (2*M*N**2, 3) )
+        targets = np.reshape( gns.T, (2*M*N*N, 3) ).T
         return targets
+    
+
+    # usage: mlab.triangular_mesh(X,Y,Z, triangle_array, scalars=color_array)
+    def export_mayavi_cube(self):
+
+        # define faces for 'C-shape' orientation N=(0,1,2,3) S=(4,5,6,7) 
+        cube_form = [(0,1,2),(0,2,3),(0,1,5),(0,4,5),(0,3,7),(0,4,7),(1,2,5),(2,5,6),(2,3,6),(3,6,7),(4,5,6),(4,6,7)]
+
+        N = self.N_magnets
+        spacer = np.arange(N)*8 
+
+        temp = np.array(cube_form)[np.newaxis,:] + spacer[:,np.newaxis,np.newaxis]
+        triangle_array = np.concatenate(temp,axis=0)
+
+        color = np.array([0,0,0,0,1,1,1,1]) # North red 0 : South blue 1
+        color_array = color[np.newaxis,:] * np.ones(N)[:,np.newaxis]
+
+        X,Y,Z = np.array([ self.n1,self.n2,self.n3,self.n4, self.s1,self.s2,self.s3,self.s4]).T
+        return X,Y,Z, triangle_array, color_array
+
 
