@@ -195,17 +195,17 @@ jit_Bvec_dipole = jit(Bvec_dipole)
 ### define helper functions
 
 def split(A):
-    t = Timer()
-    t.start('transpose')
+    #t = Timer()
+    #t.start('transpose')
     #Ax,Ay,Az = A.T
     Ax = A[:,0]
     Ay = A[:,1]
     Az = A[:,2]
-    t.stop()
+    #t.stop()
     #Amag = np.sqrt( np.sum(A*A, axis=1) )
-    t.start('norm')
+    #t.start('norm')
     Amag = np.linalg.norm(A, axis=1)
-    t.stop()
+    #t.stop()
     return Ax,Ay,Az,Amag
 
 
