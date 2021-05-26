@@ -23,10 +23,28 @@ def V_local(r,s,q):
     w = F(1-x, 1-y, z) + F(1-x, 1+y, z) + F(1+x, 1-y, z) + F(1+x, 1+y, z)
     return q/s * w / 8
 
+# manipulating magnets
+def norm(v):
+    v = np.array(v)
+    return v / mag(v)
+
+def mag(v):
+    return np.sqrt( np.sum(v*v) )
+
 # magnetization potential (homogeneous internal field)
-def V_mag(r,H,L,M):
-    x,y,z = r
+def V_mag(r,n1,n2,H,L,M):
+
+    # set up local coordinates
+    n1 = norm(n1)
+    n2 = norm(n2)
+    n3 = norm( np.cross(n1,n2) )
     
+    # project
+    z = np.dot(r,n1)
+    x = np.dot(r,n2)
+    y = np.dot(r,n3)
+    
+    # this was the bug, it is not in transformed coordinates
     tx = np.heaviside(L/2 - np.abs(x),0.5)
     ty = np.heaviside(L/2 - np.abs(y),0.5)
     tz = np.heaviside(H/2 - np.abs(z),0.5)
@@ -41,10 +59,10 @@ def V_mag(r,H,L,M):
 def to_cartesian(r,zhat,xhat):
 
     yhat = np.cross(zhat,xhat)
-
-    z = np.dot(r,zhat)
-    y = np.dot(r,yhat)
+ 
     x = np.dot(r,xhat)
+    y = np.dot(r,yhat)
+    z = np.dot(r,zhat)
 
     return np.array([x,y,z])
 
@@ -79,7 +97,7 @@ def V_general(r1,r0,n1,n2,H,L,M):
 
     Vp = V_local(Rp,S,Q)
     Vm = V_local(Rm,S,Q)
-    V0 = V_mag(r1-r0,H,L,M) # new
+    V0 = V_mag(r1-r0,n1hat,n2hat, H,L,M) # new
 
     return Vp - Vm + V0
 

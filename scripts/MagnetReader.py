@@ -639,21 +639,22 @@ class Magnet_3D():
         length = np.abs( (self.na - self.sa) / 0.0015875 )  # 1/16"
         self.len = np.array( length + 0.1, int )
 
-        # write mayavi code for drawing cubes
-        # add color to illustrate N/S
-
         # define orientations for Cifta
-        self.nvec = self.nc - self.sc # not normalized
-        #zhat = np.array([0,0,1.])
-        #self.pvec = np.cross(zhat,self.nvec)
-        self.pvec = self.compute_phat()
-        self.H = np.linalg.norm(self.nvec, axis=1)
+        nvec = self.nc - self.sc # not normalized
+        pvec = self.compute_phat()
+
+        H = np.linalg.norm(nvec, axis=1)
+        self.nvec = nvec / H[:,np.newaxis] #normalized
+        self.pvec = pvec / np.linalg.norm(pvec, axis=1)[:,np.newaxis] #normalized
+        
+        self.H = H
         self.L = self.compute_lengths()
         self.M =  1.1658e6 * np.ones(self.N_magnets) # hard coded for N-52 (Br = 1.465, KJ Magnetics)
 
         #self.xhat, self.yhat = self.compute_xy()
 
     def compute_lengths(self):
+        
         n12 = np.linalg.norm(self.n1 - self.n2, axis=1)
         n23 = np.linalg.norm(self.n2 - self.n3, axis=1)
         n34 = np.linalg.norm(self.n3 - self.n4, axis=1)
@@ -691,6 +692,10 @@ class Magnet_3D():
 
     # for the Ciftja force
     def export_source(self):
+        '''
+        exports source array for CIFTJA force calculation
+        [x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]
+        '''
 
         x0,y0,z0 = self.com.T
         nx,ny,nz = self.nvec.T
