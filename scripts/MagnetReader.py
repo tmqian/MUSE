@@ -771,55 +771,55 @@ class Magnet_3D():
 
 
 
-# 2D target space
-def export_target_n2(self, N, dz=0):
-    """
-        exports 2 N**2 targets for field sampling
-        targets are centered on NxN subdivision of each magnetic face,
-        the way there are no edge effects.
-        Optional displacement dz=1e-5 available to resolve singularities (default dz=0)
+    # 2D target space
+    def export_target_n2(self, N, dz=0):
+        """
+            exports 2 N**2 targets for field sampling
+            targets are centered on NxN subdivision of each magnetic face,
+            the way there are no edge effects.
+            Optional displacement dz=1e-5 available to resolve singularities (default dz=0)
+            
+            output loops through M magnets, before iterating N**2 face points, then interates other face
+            Would doing all samples for each magnet make analysis simpler?
+        """
         
-        output loops through M magnets, before iterating N**2 face points, then interates other face
-        Would doing all samples for each magnet make analysis simpler?
-    """
+        # load data
+        L = np.mean(self.L)
+        M = self.N_magnets
+        H = self.H
     
-    # load data
-    L = np.mean(self.L)
-    M = self.N_magnets
-    H = self.H
-
-    # build grid
-    ax = ( np.linspace(-1,1,N, endpoint=False) + 1/N ) * (L/2)
-    ugrid,vgrid = np.array(np.meshgrid(ax,ax))
+        # build grid
+        ax = ( np.linspace(-1,1,N, endpoint=False) + 1/N ) * (L/2)
+        ugrid,vgrid = np.array(np.meshgrid(ax,ax))
+        
+        # set up local coordinates
+        #norm = mr.norm
+        n1 = norm(self.nvec)
+        n2 = norm(self.pvec)
+        n3 = norm(np.cross(n1,n2))
+        r0 = self.com
     
-    # set up local coordinates
-    norm = mr.norm
-    n1 = norm(self.nvec)
-    n2 = norm(self.pvec)
-    n3 = norm(np.cross(n1,n2))
-    r0 = self.com
-
-    ux = ugrid[:,:,np.newaxis,np.newaxis]* n2[np.newaxis,np.newaxis,:,:]
-    vx = vgrid[:,:,np.newaxis,np.newaxis]* n3[np.newaxis,np.newaxis,:,:]
-    uv_grid = np.reshape(ux+vx, (N*N,M,3) )
+        ux = ugrid[:,:,np.newaxis,np.newaxis]* n2[np.newaxis,np.newaxis,:,:]
+        vx = vgrid[:,:,np.newaxis,np.newaxis]* n3[np.newaxis,np.newaxis,:,:]
+        uv_grid = np.reshape(ux+vx, (N*N,M,3) )
+        
+        # transform
+        z_height = n1*H[:,np.newaxis]/2 + dz
     
-    # transform
-    z_height = n1*H[:,np.newaxis]/2 + dz
-
-    t_north = r0 + uv_grid + z_height 
-    t_south = r0 + uv_grid - z_height 
-
-# (8,M,3)
-#    targets = np.reshape([t_north, t_south], (2*N*N*M,3))
-#    return targets
-
-    # shape into (M,8,3)
-    targets = np.concatenate([t_north, t_south],axis=0)
-    t2 = np.transpose(targets, axes=[1,0,2])
-    t3 = np.reshape(t2, (2*N*N*M,3))
-    return t3
-
-
+        t_north = r0 + uv_grid + z_height 
+        t_south = r0 + uv_grid - z_height 
+    
+    # (8,M,3)
+    #    targets = np.reshape([t_north, t_south], (2*N*N*M,3))
+    #    return targets
+    
+        # shape into (M,8,3)
+        targets = np.concatenate([t_north, t_south],axis=0)
+        t2 = np.transpose(targets, axes=[1,0,2])
+        t3 = np.reshape(t2, (2*N*N*M,3))
+        return t3
+    
+    
 
     # usage: mlab.triangular_mesh(X,Y,Z, triangle_array, scalars=color_array)
     def export_mayavi_cube(self):

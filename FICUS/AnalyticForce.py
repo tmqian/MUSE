@@ -4,6 +4,7 @@ from jax import grad, vmap, jit
 import time
 
 ### Exact Analytic field from Cifta
+# updated 26 May 2021
 
 def F(a,b,c):
     d = a*np.arcsinh( b/np.sqrt(a*a + c*c) )
@@ -54,6 +55,24 @@ def V_mag(r,n1,n2,H,L,M):
     Br = M*4*np.pi/1e7 
     return - Br * (z*tz - oz*H/2) * tx*ty
 
+# magnetization potential (homogeneous internal field)
+# assumes primed coordinates, where x,y are normal to face, and z is parallel to magnetization
+def V_mag_old(r,H,L,M):
+
+    # load position
+    x,y,z = r
+
+    # set up walls
+    tx = np.heaviside(L/2 - np.abs(x),0.5)
+    ty = np.heaviside(L/2 - np.abs(y),0.5)
+    tz = np.heaviside(H/2 - np.abs(z),0.5)
+    
+    # magnetization gradient
+    oz = np.heaviside(H/2 - z, 0.5) - np.heaviside(H/2 + z, 0.5)
+    
+    # remanent field [T]
+    Br = M*4*np.pi/1e7 
+    return - Br * (z*tz - oz*H/2) * tx*ty
 
 
 def to_cartesian(r,zhat,xhat):
@@ -90,6 +109,7 @@ def V_general(r1,r0,n1,n2,H,L,M):
 
     Rp = to_cartesian(rp,n1hat,n2hat)
     Rm = to_cartesian(rm,n1hat,n2hat)
+    dr = to_cartesian(r1 - r0,n1hat,n2hat)
 
     # compute scalar potential
     Q = M * L * L / 1e7 # [A*m] a current potential K, times mu0/4pi
@@ -97,7 +117,8 @@ def V_general(r1,r0,n1,n2,H,L,M):
 
     Vp = V_local(Rp,S,Q)
     Vm = V_local(Rm,S,Q)
-    V0 = V_mag(r1-r0,n1hat,n2hat, H,L,M) # new
+    #V0 = V_mag(r1-r0,n1hat,n2hat, H,L,M) # new
+    V0 = V_mag_old(dr,H,L,M) 
 
     return Vp - Vm + V0
 
