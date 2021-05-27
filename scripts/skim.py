@@ -2,6 +2,14 @@ import MagnetReader as mr
 import numpy as np
 import sys
 
+'''
+    usage: python skim.py fname.focus
+
+    This program reads a focus file, and removes all rows
+    where pho=0 (no magnetization). It then saves a new 
+    named fname_skim.focus.
+'''
+
 fname = sys.argv[1]
 fd = mr.ReadFAMUS(fname)
 
