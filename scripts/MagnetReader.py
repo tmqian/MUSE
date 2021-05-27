@@ -8,8 +8,7 @@ except:
     print('  note: coilpy package unavailable')
 
 '''
-    Last Updated: 14 May 2021 - adding 3D option
-    Last Updated: 26 April 2021
+    Last Updated: 27 May 2021
 '''
 
 class ReadFAMUS():    
@@ -525,12 +524,14 @@ def stellarator_symmetry(x, y, z, m):
     return X, Y, Z, M
 
 # manipulating magnets
+# did not work for ND arrays, now assumes 3-vec is in last axis
 def norm(v):
     v = np.array(v)
-    return v / mag(v)
+    return v / np.linalg.norm(v,axis=-1)[:,np.newaxis]
 
+# unused now
 def mag(v):
-    return np.sqrt( np.sum(v*v) )
+    return np.linalg.norm(n1,axis=-1)
 
 # performs quarternion rotation of v, around direction n, by angle t (positive right-hand rotation)
 def rotate(v,n,t):
@@ -770,32 +771,55 @@ class Magnet_3D():
 
 
 
-    # given integer n, computes n x n grid on each of top and bottom faces (returns 2n**2 points as 3-vectors)
-    def export_target_n2(self,N):
+# 2D target space
+def export_target_n2(self, N, dz=0):
+    """
+        exports 2 N**2 targets for field sampling
+        targets are centered on NxN subdivision of each magnetic face,
+        the way there are no edge effects.
+        Optional displacement dz=1e-5 available to resolve singularities (default dz=0)
+        
+        output loops through M magnets, before iterating N**2 face points, then interates other face
+        Would doing all samples for each magnet make analysis simpler?
+    """
     
-        # setup grid (N2, M, 3)
-        xhat, yhat = self.compute_xy()
-        M = self.N_magnets
+    # load data
+    L = np.mean(self.L)
+    M = self.N_magnets
+    H = self.H
 
-        ax  = np.linspace(-1,1,N, endpoint=False) + 1/N
-        #ax  = np.linspace(-1,1,N+2)[1:-1]
-        grid = np.meshgrid(ax,ax)
-        xs,ys = np.reshape(grid,(2,N**2))
-
-        xp =  np.reshape( (xhat[np.newaxis,:,:].T * xs), (3, M, N**2) ).T
-        yp =  np.reshape( (yhat[np.newaxis,:,:].T * ys), (3, M, N**2) ).T
-
-        G = xp + yp
-
-        # return targets
-        ng = self.nc + G
-        sg = self.sc + G
-        gns = np.concatenate( [ng,sg], axis=0 )
-
-        #targets = np.reshape(gns, (2*M*N**2, 3) )
-        targets = np.reshape( gns.T, (2*M*N*N, 3) ).T
-        return targets
+    # build grid
+    ax = ( np.linspace(-1,1,N, endpoint=False) + 1/N ) * (L/2)
+    ugrid,vgrid = np.array(np.meshgrid(ax,ax))
     
+    # set up local coordinates
+    norm = mr.norm
+    n1 = norm(self.nvec)
+    n2 = norm(self.pvec)
+    n3 = norm(np.cross(n1,n2))
+    r0 = self.com
+
+    ux = ugrid[:,:,np.newaxis,np.newaxis]* n2[np.newaxis,np.newaxis,:,:]
+    vx = vgrid[:,:,np.newaxis,np.newaxis]* n3[np.newaxis,np.newaxis,:,:]
+    uv_grid = np.reshape(ux+vx, (N*N,M,3) )
+    
+    # transform
+    z_height = n1*H[:,np.newaxis]/2 + dz
+
+    t_north = r0 + uv_grid + z_height 
+    t_south = r0 + uv_grid - z_height 
+
+# (8,M,3)
+#    targets = np.reshape([t_north, t_south], (2*N*N*M,3))
+#    return targets
+
+    # shape into (M,8,3)
+    targets = np.concatenate([t_north, t_south],axis=0)
+    t2 = np.transpose(targets, axes=[1,0,2])
+    t3 = np.reshape(t2, (2*N*N*M,3))
+    return t3
+
+
 
     # usage: mlab.triangular_mesh(X,Y,Z, triangle_array, scalars=color_array)
     def export_mayavi_cube(self):
