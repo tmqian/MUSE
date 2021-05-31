@@ -248,38 +248,33 @@ def split(A):
     return Ax,Ay,Az,Amag
 
 
-def calc_B(targets,source, B_func=jit_Bvec):
+def calc_B(targets,source, B_func=jit_Bvec, n_step=5000):
     # takes arbitrary B_function, defaults to Cifja
+
+
+    n_step = int(len(source)/2)
 
     t = Timer()
     t.start('B calc')
     print('  source shape:', source.shape)
     print('  target shape:', targets.shape)
-    N_steps = int(targets.shape[0]/5000) + 1
-    arr = np.arange(N_steps)*5000
+    N_steps = int(targets.shape[0]/n_step)# + 1
+    arr = np.arange(N_steps)*n_step
     
-    Bout = [ B_func(targets[j:j+5000], source) for j in arr]
+    # maybe I had better pad the targets, this rigidness is annoying
+    # on the other hand I could use N_magnets/2 from stellarator symmetry
+    #Bout = np.array([ B_func(targets[j:j+n_step], source) for j in arr])
+    #block = np.concatenate( np.transpose(Bout,axes=[1,0,2]), axis=0)
+    #Btot = np.sum( block, axis=1).block_until_ready()
+    Bout = [ B_func(targets[j:j+n_step], source) for j in arr]
     block = np.concatenate(Bout,axis=1)
-    Btot = np.sum( block, axis=0) .block_until_ready()
+    Btot = np.sum( block, axis=0).block_until_ready()
     t.stop()
-    
-    return Btot
 
-def calc_B2(targets,source, B_func=jit_Bvec):
-    # takes arbitrary B_function, defaults to Cifja
+    print('bout_max', np.max( np.linalg.norm( np.array(Bout), axis=-1 ) ) )
+    print('block_max', np.max( np.linalg.norm( block , axis=-1 ) ) )
+    print('btot_max', np.max( np.linalg.norm( Btot , axis=-1 ) ) )
 
-    t = Timer()
-    t.start('B calc')
-    print('  source shape:', source.shape)
-    print('  target shape:', targets.shape)
-    N_steps = int(targets.shape[0]/5000) + 1
-    pad_source = np.pad(source, N_steps*5000)
-    arr = np.arange(N_steps)*5000
-    
-    Bout = [ B_func(targets[j:j+5000], pad_source) for j in arr]
-    Btot = np.concatenate(Bout,axis=1)
-    t.stop()
-    
     return Btot
 
 def write_data(data,fout):

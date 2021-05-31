@@ -524,14 +524,17 @@ def stellarator_symmetry(x, y, z, m):
     return X, Y, Z, M
 
 # manipulating magnets
-# did not work for ND arrays, now assumes 3-vec is in last axis
-def norm(v):
+def norm_arr(v):
     v = np.array(v)
     return v / np.linalg.norm(v,axis=-1)[:,np.newaxis]
 
-# unused now
+# does work for ND arrays
+def norm(v):
+    v = np.array(v)
+    return v / mag(v)
+
 def mag(v):
-    return np.linalg.norm(n1,axis=-1)
+    return np.sqrt( np.sum(v*v) )
 
 # performs quarternion rotation of v, around direction n, by angle t (positive right-hand rotation)
 def rotate(v,n,t):
@@ -772,7 +775,7 @@ class Magnet_3D():
 
 
     # 2D target space
-    def export_target_n2(self, N, dz=0):
+    def export_target_n2(self, N, dz=1e-8):
         """
             exports 2 N**2 targets for field sampling
             targets are centered on NxN subdivision of each magnetic face,
@@ -793,10 +796,9 @@ class Magnet_3D():
         ugrid,vgrid = np.array(np.meshgrid(ax,ax))
         
         # set up local coordinates
-        #norm = mr.norm
-        n1 = norm(self.nvec)
-        n2 = norm(self.pvec)
-        n3 = norm(np.cross(n1,n2))
+        n1 = norm_arr(self.nvec)
+        n2 = norm_arr(self.pvec)
+        n3 = norm_arr(np.cross(n1,n2))
         r0 = self.com
     
         ux = ugrid[:,:,np.newaxis,np.newaxis]* n2[np.newaxis,np.newaxis,:,:]
