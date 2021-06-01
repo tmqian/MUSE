@@ -8,6 +8,11 @@ import sys
 
 # usage: python plot-fieldlines.py file.h5 boundary.plasma
 # updated: 21 Jan 2021
+'''
+inputs
+1: .h5 file from XFIELDLINES
+2: .plasma boundary from FAMUS
+'''
 
 fin = sys.argv[1]
 fboundary = sys.argv[2]

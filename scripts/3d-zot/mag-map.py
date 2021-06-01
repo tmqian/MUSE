@@ -28,7 +28,7 @@ import matplotlib.cm as cm
 
 ### USER INPUT ###
 
-_save = False
+_save = True
 _pipe = None
 _legend = 'L'
 
@@ -179,9 +179,13 @@ if (_pipe == 'Y'):
     plt.xlim(np.pi/4, np.pi/2)
     fout = 'map-y-{}.png'.format(s, fname[:-6])
 
+plt.title(pd.fname)
+plt.tight_layout()
+
 if (_save):
     print('  saving file:', fout)
     plt.savefig(fout)
+
 
 plt.draw()
 plt.show()
