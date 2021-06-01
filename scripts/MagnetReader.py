@@ -528,7 +528,7 @@ def norm_arr(v):
     v = np.array(v)
     return v / np.linalg.norm(v,axis=-1)[:,np.newaxis]
 
-# does work for ND arrays
+# does not work for ND arrays
 def norm(v):
     v = np.array(v)
     return v / mag(v)

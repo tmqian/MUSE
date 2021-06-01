@@ -1,10 +1,18 @@
 import jax.numpy as np
 from jax import grad, vmap, jit
 
+from FICUS import MagnetReader as mr
+
 import time
 
 ### Exact Analytic field from Cifta
 # updated 26 May 2021
+
+
+# enable 64 bit, which is necessary for JIT to get values right near the source
+from jax.config import config
+config.update("jax_enable_x64", True)
+
 
 def F(a,b,c):
     d = a*np.arcsinh( b/np.sqrt(a*a + c*c) )
@@ -25,17 +33,19 @@ def V_local(r,s,q):
     return q/s * w / 8
 
 # manipulating magnets
-def norm(v):
-    v = np.array(v)
-    return v / mag(v)
-
-def mag(v):
-    return np.sqrt( np.sum(v*v) )
+#def norm(v):
+#    v = np.array(v)
+#    return v / mag(v)
+#
+#def mag(v):
+#    return np.sqrt( np.sum(v*v) )
 
 # magnetization potential (homogeneous internal field)
 def V_mag(r,n1,n2,H,L,M):
 
     # set up local coordinates
+
+    norm = mr.norm_arr
     n1 = norm(n1)
     n2 = norm(n2)
     n3 = norm( np.cross(n1,n2) )
