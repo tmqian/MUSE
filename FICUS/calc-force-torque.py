@@ -116,15 +116,15 @@ plt.title('F center [N]')
 
 plt.subplot(3,3,7)
 # removed /2
-plt.hist(np.linalg.norm(Fn,axis=1),28, color = 'C0')
+plt.hist(np.linalg.norm(Fn,axis=1), 100, color = 'C0')
 plt.title('Torque Force (+)')
 
 plt.subplot(3,3,8)
-plt.hist(np.linalg.norm(Fc/2,axis=1),28, color = 'C0')
+plt.hist(np.linalg.norm(Fc/2,axis=1),100, color = 'C0')
 plt.title('COM Force (+)')
 
 plt.subplot(3,3,9)
-plt.hist(np.linalg.norm(Fpn,axis=1),28, color = 'C0')
+plt.hist(np.linalg.norm(Fpn,axis=1),100, color = 'C0')
 plt.title('Total Pole Force (+)')
 
 plt.suptitle(f_field)
@@ -136,29 +136,86 @@ plt.tight_layout()
 plt.draw()
 plt.show()
 
-# prepare data for export
-xn,yn,zn = rn.T
-xs,ys,zs = rs.T
-xc,yc,zc = rcom.T
 
-fnx,fny,fnz = Fpn.T
-fsx,fsy,fsz = Fps.T
-tx, ty, tz  = tau.T
+def export_1():
+    # prepare data for export
+    xn,yn,zn = rn.T
+    xs,ys,zs = rs.T
+    xc,yc,zc = rcom.T
 
-data = np.array([xn,yn,zn,fnx,fny,fnz,
-                 xs,ys,zs,fsx,fsy,fsz,
-                 xc,yc,zc,tx,ty,tz] ).T
+    fnx,fny,fnz = Fpn.T
+    fsx,fsy,fsz = Fps.T
+    tx, ty, tz  = tau.T
+    
+    data = np.array([xn,yn,zn,fnx,fny,fnz,
+                     xs,ys,zs,fsx,fsy,fsz,
+                     xc,yc,zc,tx,ty,tz] ).T
+    
+    # write
+    f_write = 'ForceTorque-v6-n%i.csv' % (N_charges*2)
+    with open(f_write,'w') as f:
+        head = 'Xn [m], Yn [m], Zn [m], Fnx [N], Fny [N], Fnz [N], \
+        Xs [m], Ys [m], Zs [m], Fsx [N], Fsy [N], Fsz [N], \
+        Xc [m], Yc [m], Zc [m], Tx [N m], Ty [N m], Tz [N m] \n'
+        f.write(head)
+        for line in data:
+            #x,y,z,fx,fy,fz = line
+            out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}\n'.format(*line)
+            f.write(out)
+    
+    print('wrote to file:', f_write)
 
-# write
-f_write = 'ForceTorque-v3-n%i.csv' % (N_charges*2)
-with open(f_write,'w') as f:
-    head = 'Xn [m], Yn [m], Zn [m], Fnx [N], Fny [N], Fnz [N], \
-    Xs [m], Ys [m], Zs [m], Fsx [N], Fsy [N], Fsz [N], \
-    Xc [m], Yc [m], Zc [m], Tx [N m], Ty [N m], Tz [N m] \n'
-    f.write(head)
-    for line in data:
-        #x,y,z,fx,fy,fz = line
-        out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}\n'.format(*line)
-        f.write(out)
 
-print('wrote to file:', f_write)
+def export_2():
+    # prepare data for export
+    xn,yn,zn = rn.T
+    xs,ys,zs = rs.T
+    xc,yc,zc = rcom.T
+   
+    fcx,fcy,fcz = Fc.T / 2
+    bcx,bcy,bcz = Bc.T
+
+    # torque forces
+    tx, ty, tz  = tau.T
+    fnx,fny,fnz = Fn.T
+    fsx,fsy,fsz = Fs.T
+    
+    # sum of torques and COM forces
+    Fnx,Fny,Fnz = Fpn.T
+    Fsx,Fsy,Fsz = Fps.T
+    
+    data = np.array([xn,yn,zn,
+                     xs,ys,zs,
+                     xc,yc,zc,
+                     bcx,bcy,bcz,
+                     fcx,fcy,fcz,
+                     tx,ty,tz,
+                     fnx,fny,fnz,
+                     fsx,fsy,fsz,
+                     Fnx,Fny,Fnz,
+                     Fsx,Fsy,Fsz
+                     ] ).T
+    
+    # write
+    f_write = 'Field-Force-Torque-v6-n%i.csv' % (N_charges*2)
+    with open(f_write,'w') as f:
+        head = 'Xn [m] (N face center), Yn [m], Zn [m], \
+                Xs [m] (S face center), Ys [m], Zs [m], \
+                Xc [m] (COM coordinate), Yc [m], Zc [m], \
+                Bcx [T] (avg com B), Bcy [T], Bcz [T], \
+                Fcx [N] (COM force), Fcy [N], Fcz [N], \
+                Tx [N m] (Torque), Ty [N m], Tz [N m] \
+                fnx [N] (torque force couple N), fny [N], fnz [N], \
+                fsx [N] (torque force couple S), fsy [N], fsz [N], \
+                Fnx [N] (Sum forces N), Fny [N], Fnz [N], \
+                Fsx [N] (Sum forces S), Fsy [N], Fsz [N], \
+                \n'
+        f.write(head)
+        for line in data:
+            out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}\n'.format(*line)
+            f.write(out)
+    
+    print('wrote to file:', f_write)
+
+
+export_2()
