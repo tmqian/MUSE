@@ -5,7 +5,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 
-### Updated 31 May 2021
+'''
+This program reads the output of sample_fields.py
+and evaluates forces and torques from the magnetic field
+
+Exports a Mx30 .csv file
+   head = 'Xn [m] (N face center), Yn [m], Zn [m], \
+           Xs [m] (S face center), Ys [m], Zs [m], \
+           Xc [m] (COM coordinate), Yc [m], Zc [m], \
+           Bcx [T] (avg com B), Bcy [T], Bcz [T], \
+           Fcx [N] (COM force), Fcy [N], Fcz [N], \
+           Tx [N m] (Torque), Ty [N m], Tz [N m] \
+           fnx [N] (torque force couple N), fny [N], fnz [N], \
+           fsx [N] (torque force couple S), fsy [N], fsz [N], \
+           Fnx [N] (Sum forces N), Fny [N], Fnz [N], \
+           Fsx [N] (Sum forces S), Fsy [N], Fsz [N], \
+           \n'
+
+Updated 31 May 2021
+'''
 
 path = './'
 f_mag   = 'block_zot80_3sq_1.csv'
