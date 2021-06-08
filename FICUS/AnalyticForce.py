@@ -258,17 +258,21 @@ def split(A):
     return Ax,Ay,Az,Amag
 
 
-def calc_B(targets,source, B_func=jit_Bvec, n_step=5000):
+def calc_B(targets,source, B_func=jit_Bvec, n_step=-1):
     # takes arbitrary B_function, defaults to Cifja
 
+    #N_steps = int(targets.shape[0]/n_step) + 1 
 
-    n_step = int(len(source)/2)
+    # efficient mode, make n_step an exact divisor 
+    if (n_step < 0):
+        n_step = int(len(source)/2)
+        #N_steps = int(targets.shape[0]/n_step)
 
     t = Timer()
     t.start('B calc')
     print('  source shape:', source.shape)
     print('  target shape:', targets.shape)
-    N_steps = int(targets.shape[0]/n_step)# + 1
+    N_steps = int(targets.shape[0]/n_step) #+ 1 
     arr = np.arange(N_steps)*n_step
     
     # maybe I had better pad the targets, this rigidness is annoying
