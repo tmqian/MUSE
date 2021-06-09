@@ -235,6 +235,7 @@ def split(A):
 def calc_B(targets,source, B_func=jit_Bvec, n_step=5000, _face=True):
     # takes arbitrary B_function, defaults to Cifja
 
+    #N_steps = int(targets.shape[0]/n_step) + 1 
 
 
     t = Timer()
