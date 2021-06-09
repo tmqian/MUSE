@@ -4,10 +4,13 @@ from jax import grad, vmap, jit
 from FICUS import MagnetReader as mr
 
 import time
+'''
+    Exact Analytic field from Cifta
+    This is a fork of AnalyticForce.py
+    which attempts to generalize from Square to Rectangular Plates
 
-### Exact Analytic field from Cifta
-# updated 26 May 2021
-
+    9 June 2021
+'''
 
 # enable 64 bit, which is necessary for JIT to get values right near the source
 from jax.config import config
@@ -22,43 +25,80 @@ def F(a,b,c):
     f = c*np.arctan( (a*b)/(c*r) ) 
 
     
-    return 2 * (d+e-f) # /np.sqrt(np.pi)
+    return 2 * (d+e-f) # / np.pi ## This factor of 1/pi cancels with a pi in V
 
     
-def V_local(r,s,q):
+def V_local(R,magnet):
+
+    # load position and dimensions
+    x,y,z  = R
+    M,H,L,W = magnet
     
-    x,y,z = r/s
+    # lengths are normalized x = X / (L/2)
+    X,Y,Z = 2*R 
+    x = X/L
+    y = Y/W
+    z = Z/H
+
+    # for general (non-square) case, integrals must be rescaled
+    a = L/H
+    b = W/H
     
-    w = F(1-x, 1-y, z) + F(1-x, 1+y, z) + F(1+x, 1-y, z) + F(1+x, 1+y, z)
-    return q/s * w / 8
+    w =  F( a*(1-x), b*(1-y), z) + F( a*(1-x), b*(1+y), z) \
+       + F( a*(1+x), b*(1-y), z) + F( a*(1+x), b*(1+y), z)
+
+    return M * w / 4 # * np.pi ## This factor of pi cancels with a 1/pi in F
+
+
+# this newer function turned out to be less efficient than the (fixed) old one
+# this now the OLD unused function
+# magnetization potential (homogeneous internal field)
+#def V_mag(r,n1,n2,H,L,M):
+#
+#    # set up local coordinates
+#
+#    norm = mr.norm_arr
+#    n1 = norm(n1)
+#    n2 = norm(n2)
+#    n3 = norm( np.cross(n1,n2) )
+#    
+#    # project
+#    z = np.dot(r,n1)
+#    x = np.dot(r,n2)
+#    y = np.dot(r,n3)
+#    
+#    # this was the bug, it is not in transformed coordinates
+#    tx = np.heaviside(L/2 - np.abs(x),0.5)
+#    ty = np.heaviside(L/2 - np.abs(y),0.5)
+#    tz = np.heaviside(H/2 - np.abs(z),0.5)
+#    
+#    oz = np.heaviside(H/2 - z, 0.5) - np.heaviside(H/2 + z, 0.5)
+#    
+#    Br = M*4*np.pi/1e7 
+#    return - Br * (z*tz - oz*H/2) * tx*ty
 
 
 # magnetization potential (homogeneous internal field)
-def V_mag(r,n1,n2,H,L,M):
+# assumes primed coordinates, where x,y are normal to face, and z is parallel to magnetization
+def V_mag_local(r,magnet):
 
-    # set up local coordinates
+    # load position and dimensions
+    x,y,z  = r
+    M,H,L,W = magnet
 
-    norm = mr.norm_arr
-    n1 = norm(n1)
-    n2 = norm(n2)
-    n3 = norm( np.cross(n1,n2) )
-    
-    # project
-    z = np.dot(r,n1)
-    x = np.dot(r,n2)
-    y = np.dot(r,n3)
-    
-    # this was the bug, it is not in transformed coordinates
+    # set up walls
     tx = np.heaviside(L/2 - np.abs(x),0.5)
-    ty = np.heaviside(L/2 - np.abs(y),0.5)
+    ty = np.heaviside(W/2 - np.abs(y),0.5)
     tz = np.heaviside(H/2 - np.abs(z),0.5)
-    
+
+    # magnetization gradient
     oz = np.heaviside(H/2 - z, 0.5) - np.heaviside(H/2 + z, 0.5)
-    
-    Br = M*4*np.pi/1e7 
+
+    # remanent field [T]
+    Br = M*4*np.pi/1e7
     return - Br * (z*tz - oz*H/2) * tx*ty
 
-
+# assumes input is unit vectors (else projection is skewed)
 def to_cartesian(r,zhat,xhat):
 
     yhat = np.cross(zhat,xhat)
@@ -76,49 +116,58 @@ def to_cartesian(r,zhat,xhat):
     r0 is COM of source magnet
     n1 is orientation of magnet (not necessarily normalized)
     n2 is 2nd orientation of magnet (direction tangent to one rectangular face, also not necessarily normalized)
-    H is height of magnet (separation of electrostatic plates)
-    L is the side length of face of magnet (assumed to be SQ)
     M is the magnetization of the material [A/m]
+    H is height of magnet (separation of electrostatic plates) n1 direction
+    L is the side length, defined by n2 direction
+    W is the width, implicitly defined by n3 = n1 x n2 (= L for square case)
 '''
 
 
-def V_general(r1,r0,n1,n2,H,L,M):
+def V_general(r1,r0,n1,n2,M,H,L,W):
 
+    rp = r1 - r0 - n1*(H/2)
+    rm = r1 - r0 + n1*(H/2)
 
-    n1hat = n1 / np.sqrt( np.dot(n1,n1) )
-    n2hat = n2 / np.sqrt( np.dot(n2,n2) ) # this is the same for both plates (since there is no shear)
-
-    rp = r1 - r0 - n1hat*(H/2)
-    rm = r1 - r0 + n1hat*(H/2)
-
-    Rp = to_cartesian(rp,n1hat,n2hat)
-    Rm = to_cartesian(rm,n1hat,n2hat)
-    dr = to_cartesian(r1 - r0,n1hat,n2hat)
+    Rp = to_cartesian(rp     , n1, n2)
+    Rm = to_cartesian(rm     , n1, n2)
+    dR = to_cartesian(r1 - r0, n1, n2)
 
     # compute scalar potential
-    Q = M * L * L / 1e7 # [A*m] a current potential K, times mu0/4pi
-    S = L/2
-
-    Vp = V_local(Rp,S,Q)
-    Vm = V_local(Rm,S,Q)
-    #V0 = V_mag(r1-r0,n1hat,n2hat, H,L,M) # new
-    V0 = V_mag_old(dr,H,L,M) 
+    magnet = np.array([M,H,L,W])
+    Vp = V_local(Rp,magnet)
+    Vm = V_local(Rm,magnet)
+    V0 = V_mag_local(dR,magnet) 
 
     return Vp - Vm + V0
 
+'''
+   Assume H is parallel to n1, local z
+          L is parallel to n2, local x
+          W is parallel to n3 (implicitly defined as n1 x n2)
 
+   Assume n1, n2, and m0 are unit vectors
+'''
 def Vg_wrap(target,source):
 
     x1,y1,z1 = target
-    x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M = source
+    x0,y0,z0, nx,ny,nz, ux,uy,uz, H,L,W, M, mx,my,mz = source # new convention
+    #x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M = source
 
     r1 = np.array([x1,y1,z1])
 
     r0 = np.array([x0,y0,z0])
     n1 = np.array([nx,ny,nz])
     n2 = np.array([ux,uy,uz])
+    m0  = np.array([mx,my,mz]) 
 
-    return V_general(r1,r0,n1,n2,H,L,M)
+    # go to local coordinates
+    m1,m2,m3 = to_cartesian(M*m0, n1, n2)
+
+    V1 = V_general(r1,r0,n1,n2, m1,H,L,W)
+    V2 = V_general(r1,r0,n2,n3, m2,L,W,H)
+    V3 = V_general(r1,r0,n3,n1, m3,W,H,L)
+
+    return V1 + V2 + V3
 
 
 ## first loop target, then source
@@ -148,12 +197,13 @@ vt1 = vmap( Vg_wrap,(0,None))
 vt2 = vmap( vt1,(None,0))
 
 
-L = 0.25*2.54/100 # quarter inch sq, as m**2
-M = 1.1658e6 # units A/m
-H = L
 
+# I think these are old unused floating variables
+#L = 0.25*2.54/100 # quarter inch sq, as m**2
+#M = 1.1658e6 # units A/m
+#H = L
 # useful for ref
-Br = M * 4*np.pi/1e7
+#Br = M * 4*np.pi/1e7
 
 '''
     Dipole potential

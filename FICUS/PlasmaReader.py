@@ -61,12 +61,13 @@ class ReadPlasma():
     
         self.N_plasma = N_plasma
     
-        print('Loading Complete')
+        print('Plasma Surface Loaded')
         print('  N_surface:', N_plasma)
    
 
     def calc_bnorm(self, B_vec):
     ### the shape of dipole_symm much match that of preloaded coil_symm on plasma surface
+
 
         dipole_symm = np.sum(B_vec * self.n_plasma, axis=1) # dot product
 
