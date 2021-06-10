@@ -141,12 +141,12 @@ vt1 = vmap( Vg_wrap,(0,None))
 vt2 = vmap( vt1,(None,0))
 
 
-L = 0.25*2.54/100 # quarter inch sq, as m**2
-M = 1.1658e6 # units A/m
-H = L
-
-# useful for ref
-Br = M * 4*np.pi/1e7
+#L = 0.25*2.54/100 # quarter inch sq, as m**2
+#M = 1.1658e6 # units A/m
+#H = L
+#
+## useful for ref
+#Br = M * 4*np.pi/1e7
 
 '''
     Dipole potential

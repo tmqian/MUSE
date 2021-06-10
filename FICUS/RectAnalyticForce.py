@@ -4,6 +4,7 @@ from jax import grad, vmap, jit
 from FICUS import MagnetReader as mr
 
 import time
+import pdb
 
 ### Exact Analytic field from Cifta
 # updated 26 May 2021
@@ -64,6 +65,7 @@ def V_mag_local(r,magnet):
     return - Br * (z*tz - oz*H/2) * tx*ty
 
 
+# returns xyz, where n1 is zhat and n2 is xhat
 def to_cartesian(r,zhat,xhat):
 
     yhat = np.cross(zhat,xhat)
@@ -119,15 +121,67 @@ def Vg_wrap(target,source):
     # for now W=L
     return V_general(r1,r0,n1,n2,H,L,L,M)
 
+'''
+   Assume H is parallel to n1, local z
+          L is parallel to n2, local x
+          W is parallel to n3 (implicitly defined as n1 x n2)
+
+   Assume n1, n2, and m0 are unit vectors
+'''
+def Vg_wrap_3D(target,source):
+
+    x1,y1,z1 = target
+    try:
+        x0,y0,z0, nx,ny,nz, ux,uy,uz, H,L, M, mx,my,mz = source # new convention
+        W = L
+        print('imported 15 variables, assuming W=L')
+    except:
+        x0,y0,z0, nx,ny,nz, ux,uy,uz, H,L,W, M, mx,my,mz = source # new convention
+        print('imported 16 variables, with assuming W != L')
+    #x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M = source
+
+    r1 = np.array([x1,y1,z1])
+
+    r0 = np.array([x0,y0,z0])
+    m0 = np.array([mx,my,mz]) 
+    n1 = np.array([nx,ny,nz])
+    n2 = np.array([ux,uy,uz])
+    n3 = np.cross(n1,n2,axis=-1)
+
+    # go to local coordinates
+    m2,m3,m1 = to_cartesian(M*m0, n1, n2) + 1e-8
+    # returns xyz, where n1 is zhat and n2 is xhat
+    pdb.set_trace()
+
+    V1 = V_general(r1,r0,n1,n2, m1,H,L,W)
+    V2 = V_general(r1,r0,n2,n3, m2,L,W,H)
+    V3 = V_general(r1,r0,n3,n1, m3,W,H,L)
+    return V1 + V2 + V3
 
 ## first loop target, then source
 # this has the advantage of putting sources (which we want to sum over) on axis=0
 
 # Calculate B vector field
+# new set for Bvec3 where M is not necessarily parallel to axis
+vg3_1 = vmap( grad(Vg_wrap_3D),(0,None))
+vg3_2 = vmap( vg3_1,(None,0))
+
+
+def Bvec3(target,source):
+
+    gradV = vg3_2(target,source)
+    #pdb.set_trace()
+    #foo = mask_self_interactions(8,len(source) )
+    #gradV = gradV*foo
+    #B     = -1*np.sum(gradV, axis=0)
+    B = -1*gradV
+    return B
+
+jit_Bvec3 = jit(Bvec3)
+
+# Calculate B vector field
 vg1 = vmap( grad(Vg_wrap),(0,None))
 vg2 = vmap( vg1,(None,0))
-
-import pdb
 
 def Bvec(target,source):
 
@@ -140,7 +194,6 @@ def Bvec(target,source):
     return B
 
 jit_Bvec = jit(Bvec)
-
 
 # Cacluate V scalar potential
 vt1 = vmap( Vg_wrap,(0,None))
