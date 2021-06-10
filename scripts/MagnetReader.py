@@ -711,6 +711,7 @@ class Magnet_3D():
         source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
         return source
 
+    #### WARNING this is in the non-3d file (should be deleted)
     def export_m3d(self):
         '''
         exports source array for generalized M (not necessarily parallel to axis)
@@ -918,7 +919,7 @@ class Magnet_3D_gen():
         L = self.L
         M = self.M
 
-        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
+        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, M,H,L]).T
         return source
 
     # export 3M magnets
