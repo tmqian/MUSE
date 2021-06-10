@@ -4,14 +4,10 @@ from jax import grad, vmap, jit
 from FICUS import MagnetReader as mr
 
 import time
-import pdb
-'''
-    Exact Analytic field from Cifta
-    This is a fork of AnalyticForce.py
-    which attempts to generalize from Square to Rectangular Plates
 
-    9 June 2021
-'''
+### Exact Analytic field from Cifta
+# updated 26 May 2021
+
 
 # enable 64 bit, which is necessary for JIT to get values right near the source
 from jax.config import config
@@ -26,40 +22,25 @@ def F(a,b,c):
     f = c*np.arctan( (a*b)/(c*r) ) 
 
     
-    return 2 * (d+e-f) # / np.pi ## This factor of 1/pi cancels with a pi in V
+    return 2 * (d+e-f) # /np.sqrt(np.pi)
 
     
 def V_local(R,magnet):
-
-    # load position and dimensions
-    x,y,z  = R
-    M,H,L,W = magnet
     
-    # lengths are normalized x = X / (L/2)
-    X,Y,Z = 2*R 
+    X,Y,Z = 2*R
+    M,H,L,W = magnet.T
+
     x = X/L
     y = Y/W
     z = Z/H
-
-    # for general (non-square) case, integrals must be rescaled
+    
     a = L/H
     b = W/H
 
-    #a = 1
-    #b = 1
-
-    # sigma has dimensions of M [A/m], since Q is [A m]
-    Q = M * L * W / 1e7 # [A*m] a current potential K, times mu0/4pi
-    #pdb.set_trace()
     w =  F( a*(1-x), b*(1-y), z) + F( a*(1-x), b*(1+y), z) \
        + F( a*(1+x), b*(1-y), z) + F( a*(1+x), b*(1+y), z)
 
-    return M * H / 8 / 1e7 # * np.pi ## This factor of pi cancels with a 1/pi in F
-    #return Q/L * w / 4 # * np.pi ## This factor of pi cancels with a 1/pi in F
-    #return Q * w / 4 # * np.pi ## This factor of pi cancels with a 1/pi in F
-    # just Q gave something in the Tesla range
-    # also interesting to note that a=b seemed to give the same value for a != 1. Is this reasonable
-    # okay good, they were only similar but not the same
+    return (M*H/1e7) * w / 4
 
 
 # magnetization potential (homogeneous internal field)
@@ -68,7 +49,7 @@ def V_mag_local(r,magnet):
 
     # load position and dimensions
     x,y,z  = r
-    M,H,L,W = magnet
+    M,H,L,W = magnet.T
 
     # set up walls
     tx = np.heaviside(L/2 - np.abs(x),0.5)
@@ -82,7 +63,7 @@ def V_mag_local(r,magnet):
     Br = M*4*np.pi/1e7
     return - Br * (z*tz - oz*H/2) * tx*ty
 
-# assumes input is unit vectors (else projection is skewed)
+
 def to_cartesian(r,zhat,xhat):
 
     yhat = np.cross(zhat,xhat)
@@ -100,74 +81,44 @@ def to_cartesian(r,zhat,xhat):
     r0 is COM of source magnet
     n1 is orientation of magnet (not necessarily normalized)
     n2 is 2nd orientation of magnet (direction tangent to one rectangular face, also not necessarily normalized)
+    H is height of magnet (separation of electrostatic plates)
+    L is the side length of face of magnet (assumed to be SQ)
     M is the magnetization of the material [A/m]
-    H is height of magnet (separation of electrostatic plates) n1 direction
-    L is the side length, defined by n2 direction
-    W is the width, implicitly defined by n3 = n1 x n2 (= L for square case)
 '''
 
 
-def V_general(r1,r0,n1,n2,M,H,L,W):
+def V_general(r1,r0,n1,n2,H,L,W,M):
 
     rp = r1 - r0 - n1*(H/2)
     rm = r1 - r0 + n1*(H/2)
 
-    Rp = to_cartesian(rp     , n1, n2)
-    Rm = to_cartesian(rm     , n1, n2)
-    dR = to_cartesian(r1 - r0, n1, n2)
+    Rp = to_cartesian(rp,n1,n2)
+    Rm = to_cartesian(rm,n1,n2)
+    dr = to_cartesian(r1 - r0,n1,n2)
 
     # compute scalar potential
     magnet = np.array([M,H,L,W])
-    #pdb.set_trace()
     Vp = V_local(Rp,magnet)
     Vm = V_local(Rm,magnet)
-    V0 = V_mag_local(dR,magnet) 
+    V0 = V_mag_local(dr,magnet) 
 
     return Vp - Vm + V0
 
-'''
-   Assume H is parallel to n1, local z
-          L is parallel to n2, local x
-          W is parallel to n3 (implicitly defined as n1 x n2)
 
-   Assume n1, n2, and m0 are unit vectors
-'''
-def Vg_wrap_3D(target,source):
-
-    x1,y1,z1 = target
-    x0,y0,z0, nx,ny,nz, ux,uy,uz, H,L,W, M, mx,my,mz = source # new convention
-    #x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M = source
-
-    r1 = np.array([x1,y1,z1])
-
-    r0 = np.array([x0,y0,z0])
-    n1 = np.array([nx,ny,nz])
-    n2 = np.array([ux,uy,uz])
-    m0  = np.array([mx,my,mz]) 
-
-    # go to local coordinates
-    m1,m2,m3 = to_cartesian(M*m0, n1, n2)
-
-    V1 = V_general(r1,r0,n1,n2, m1,H,L,W)
-    V2 = V_general(r1,r0,n2,n3, m2,L,W,H)
-    V3 = V_general(r1,r0,n3,n1, m3,W,H,L)
-    return V1 + V2 + V3
-
-# backward compatibility
 def Vg_wrap(target,source):
 
     x1,y1,z1 = target
     x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M = source
-    #source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, M,H,L]).T # from MagnetReader file
 
     r1 = np.array([x1,y1,z1])
 
     r0 = np.array([x0,y0,z0])
     n1 = np.array([nx,ny,nz])
     n2 = np.array([ux,uy,uz])
-    
-    #Q = M * L * L / 1e7 # [A*m] a current potential K, times mu0/4pi
-    return V_general(r1,r0,n1,n2, M,H,L,L)
+
+    # for now W=L
+    return V_general(r1,r0,n1,n2,H,L,L,M)
+
 
 ## first loop target, then source
 # this has the advantage of putting sources (which we want to sum over) on axis=0
@@ -176,10 +127,15 @@ def Vg_wrap(target,source):
 vg1 = vmap( grad(Vg_wrap),(0,None))
 vg2 = vmap( vg1,(None,0))
 
+import pdb
 
 def Bvec(target,source):
 
     gradV = vg2(target,source)
+    #pdb.set_trace()
+    #foo = mask_self_interactions(8,len(source) )
+    #gradV = gradV*foo
+    #B     = -1*np.sum(gradV, axis=0)
     B = -1*gradV
     return B
 
@@ -190,6 +146,13 @@ jit_Bvec = jit(Bvec)
 vt1 = vmap( Vg_wrap,(0,None))
 vt2 = vmap( vt1,(None,0))
 
+
+#L = 0.25*2.54/100 # quarter inch sq, as m**2
+#M = 1.1658e6 # units A/m
+#H = L
+#
+## useful for ref
+#Br = M * 4*np.pi/1e7
 
 '''
     Dipole potential
@@ -254,15 +217,25 @@ jit_Bvec_dipole = jit(Bvec_dipole)
 ### define helper functions
 
 def split(A):
+    #t = Timer()
+    #t.start('transpose')
+    #Ax,Ay,Az = A.T
     Ax = A[:,0]
     Ay = A[:,1]
     Az = A[:,2]
+    #t.stop()
+    #Amag = np.sqrt( np.sum(A*A, axis=1) )
+    #t.start('norm')
     Amag = np.linalg.norm(A, axis=1)
+    #t.stop()
     return Ax,Ay,Az,Amag
 
 
 def calc_B(targets,source, B_func=jit_Bvec, n_step=5000, _face=True):
     # takes arbitrary B_function, defaults to Cifja
+
+    #N_steps = int(targets.shape[0]/n_step) + 1 
+
 
     t = Timer()
     t.start('B calc')
