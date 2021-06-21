@@ -40,9 +40,13 @@ def B_local(R,a,I):
     
     Bz = B1 * (K - cz*E)
     Br = B1 * (cr*E - K)
-
-    Bx = Br * (x/r)
-    By = Br * (y/r)
+ 
+    if (r != 0):
+        Bx = Br * (x/r)
+        By = Br * (y/r)
+    else:
+        Bx = 0
+        By = 0
 
     return np.array( [Bx,By,Bz] )
 
@@ -71,7 +75,7 @@ def to_cartesian(r,zhat,xhat):
 def B_general(r1,r0,n1,I,a):
 
     n1hat = n1 / np.sqrt( np.dot(n1,n1) )
-    n2hat = np.arrat( [0,0,1] )
+    n2hat = np.array( [0,0,1] )
 
     r = r1 - r0 
     R = to_cartesian(r,n1hat,n2hat)
@@ -108,7 +112,7 @@ def Bvec(target,source):
 
 jit_Bvec = jit(Bvec)
 
-def calc_B(targets,source, B_func=jit_Bvec, n_step=3000)
+def calc_B(targets,source, B_func=jit_Bvec, n_step=3000):
     # takes arbitrary B_function, defaults to Cifja
 
     #N_steps = int(targets.shape[0]/n_step) + 1 
