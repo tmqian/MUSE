@@ -8,7 +8,7 @@ except:
     print('  note: coilpy package unavailable')
 
 '''
-    Last Updated: 27 May 2021
+    Last Updated: 31 May 2021
 '''
 
 class ReadFAMUS():    
@@ -835,7 +835,7 @@ class Magnet_3D():
         temp = np.array(cube_form)[np.newaxis,:] + spacer[:,np.newaxis,np.newaxis]
         triangle_array = np.concatenate(temp,axis=0)
 
-        color = np.array([0,0,0,0,1,1,1,1]) # North red 0 : South blue 1
+        color = np.array([1,1,1,1,0,0,0,0]) # North red 1 : South blue 0
         color_array = color[np.newaxis,:] * np.ones(N)[:,np.newaxis]
 
         X,Y,Z = np.array([ self.n1,self.n2,self.n3,self.n4, self.s1,self.s2,self.s3,self.s4]).T
