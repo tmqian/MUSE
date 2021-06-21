@@ -588,6 +588,7 @@ def xyz_to_n(xyz,R0=0.3048):
     The convention is n1,n2,n3,n4 followed by s1,s2,s3,s4, where the difference between faces
     is used to encode orientation. This assumes the PM is magnetized parallel to axis.
 '''
+# this class reads a 3D magnet specified by 24 variables
 class Magnet_3D():
 
     def __init__(self,fname, R=0.3048):
@@ -709,6 +710,31 @@ class Magnet_3D():
         M = self.M
 
         source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
+        return source
+
+    #### WARNING this is in the non-3d file (should be deleted)
+    def export_m3d(self):
+        '''
+        exports source array for generalized M (not necessarily parallel to axis)
+        r0, n1, n2, H,L,M, m3
+
+        H could be encoded in n1
+        L could be encoded in n2
+        M could be encoded in m3
+
+        Does redundancy add value?
+        I'll keep it for now
+        '''
+
+        x0,y0,z0 = self.com.T
+        nx,ny,nz = self.nvec.T
+        ux,uy,uz = self.pvec.T
+        H = self.H
+        L = self.L
+        M = self.M
+        mx,my,mz = self.nvec.T
+
+        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M, mx,my,mz]).T
         return source
 
     def export_source_dipole(self):
@@ -842,3 +868,139 @@ class Magnet_3D():
         return X,Y,Z, triangle_array, color_array
 
 
+# this class reads a 3D magnet specified by 15 variables
+class Magnet_3D_gen():
+
+    def __init__(self,fname, R=0.3048):
+
+        # read file
+        with open(fname) as f:
+            datain = f.readlines()
+        data  = np.array([ line.strip().split(',') for line in datain[1:] ], float)
+        print('Data size:', data.shape)
+        self.data = data
+        self.N_magnets = len(data)
+
+        # unpack data
+        x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M, mx,my,mz = data.T
+
+        # sort into vectors
+        self.r0 = np.array([x0,y0,z0]).T
+        n1 = np.array([nx,ny,nz]).T
+        n2 = np.array([ux,uy,uz]).T
+        m3 = np.array([mx,my,mz]).T
+
+        self.n1 = norm_arr(n1)
+        self.n2 = norm_arr(n2)
+        self.n3 = norm_arr( np.cross(n1,n2) )
+        self.H  =  H
+        self.L  =  L
+        self.W  =  L   # assumes input is square plate (temporary)
+        self.M  =  M
+        self.m3 = norm_arr(m3)
+
+    # for the Ciftja force (backward compatible)
+    def export_source(self):
+        '''
+        exports source array for CIFTJA force calculation
+        [x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]
+        '''
+
+        mvec = self.M[:,np.newaxis] * self.m3
+        m1 = np.sum( mvec * self.n1, axis=1 )
+        m2 = np.sum( mvec * self.n2, axis=1 )
+        m3 = np.sum( mvec * self.n3, axis=1 )
+        # also need width
+        # H=1, L=2, W=3A
+        ## this will be a bigger update
+
+        x0,y0,z0 = self.r0.T
+        nx,ny,nz = self.n1.T
+        ux,uy,uz = self.n2.T
+        H = self.H
+        L = self.L
+        M = self.M
+
+        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, M,H,L]).T
+        return source
+
+    # export 3M magnets
+    def export_m3d(self):
+        '''
+        exports source array for CIFTJA force calculation
+        [x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]
+        '''
+
+        x0,y0,z0 = self.r0.T
+        nx,ny,nz = self.n1.T
+        ux,uy,uz = self.n2.T
+        mx,my,mz = self.m3.T
+        M = self.M
+        H = self.H
+        L = self.L
+        W = self.W
+        
+        # x0,y0,z0, nx,ny,nz, ux,uy,uz, H,L,W, M, mx,my,mz = source # new convention
+        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz,H,L,W,M, mx,my,mz]).T
+        return source
+
+    # 2D target space
+    def export_target_n2(self, N, dz=1e-8):
+        """
+            exports 2 N**2 targets for field sampling
+            targets are centered on NxN subdivision of each magnetic face,
+            the way there are no edge effects.
+            Optional displacement dz=1e-5 available to resolve singularities (default dz=0)
+            
+            output loops through M magnets, before iterating N**2 face points, then interates other face
+            Would doing all samples for each magnet make analysis simpler?
+        """
+        
+        # load data
+        L = np.mean(self.L)
+        M = self.N_magnets
+        H = self.H
+    
+        # build grid
+        ax = ( np.linspace(-1,1,N, endpoint=False) + 1/N ) * (L/2)
+        ugrid,vgrid = np.array(np.meshgrid(ax,ax))
+        
+        # set up local coordinates
+        #n1 = norm_arr(self.nvec)
+        #n2 = norm_arr(self.pvec)
+        #n3 = norm_arr(np.cross(n1,n2))
+        n1 = self.n1
+        n2 = self.n2
+        n3 = self.n3
+        r0 = self.r0
+    
+        ux = ugrid[:,:,np.newaxis,np.newaxis]* n2[np.newaxis,np.newaxis,:,:]
+        vx = vgrid[:,:,np.newaxis,np.newaxis]* n3[np.newaxis,np.newaxis,:,:]
+        uv_grid = np.reshape(ux+vx, (N*N,M,3) )
+        
+        # transform
+        z_height = n1*H[:,np.newaxis]/2 + dz
+    
+        t_north = r0 + uv_grid + z_height 
+        t_south = r0 + uv_grid - z_height 
+    
+        # shape into (M,8,3)
+        targets = np.concatenate([t_north, t_south],axis=0)
+        t2 = np.transpose(targets, axes=[1,0,2])
+        t3 = np.reshape(t2, (2*N*N*M,3))
+        return t3
+
+    def write_magnets(self, fout):
+
+        data = self.export_m3d()
+        
+        print('Preparing to write file')
+        with open(fout,'w') as f:
+        
+            f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], M [A/m], mx, my, mz \n')
+            for line in data:
+                
+                out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(*line)
+                print(out,file=f)
+        print('  Wrote to %s' % fout)
+        
