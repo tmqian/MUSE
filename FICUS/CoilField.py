@@ -1,9 +1,10 @@
 import jax.numpy as np
-from jax import grad, vmap, jit
+from jax import vmap, jit
 
 from scipy import special as sp
 
-import time
+import Timer
+#import time
 
 ### Exact Analytic field from Cifta
 # updated 21 June 2021
@@ -15,6 +16,27 @@ config.update("jax_enable_x64", True)
 
 
 mu0 = 4*np.pi/1e7
+
+
+####
+# Elliptic Integral Work Around
+N = 1000
+ax = np.linspace(0,1,N,endpoint=False)
+ek = sp.ellipk(ax)
+ee = sp.ellipe(ax)
+
+#fin = 'ellipse-1000.csv'
+#with open(fin) as f:
+#    datain = f.readlines()
+#data = np.array([line.strip().split(',') for line in datain], float)
+#ax,ek,ee = data.T
+
+def ellipk(m):
+    return np.interp(m,ax,ek)
+
+def ellipe(m):
+    return np.interp(m,ax,ee)
+###
 
 # evaluate coil fields, r is cylindrical radius
 def B_local(R,a,I):
@@ -31,8 +53,11 @@ def B_local(R,a,I):
 
     # Elliptic integrals
     m = 4*r/Q
-    K = sp.ellipk(m)
-    E = sp.ellipe(m)
+    print(m)
+    #K = sp.ellipk(m)
+    #E = sp.ellipe(m)
+    K = ellipk(m)
+    E = ellipe(m)
 
     # fields
     B0 = mu0*I/2/a
@@ -41,14 +66,15 @@ def B_local(R,a,I):
     Bz = B1 * (K - cz*E)
     Br = B1 * (cr*E - K)
  
-    if (r != 0):
-        Bx = Br * (x/r)
-        By = Br * (y/r)
-    else:
-        Bx = 0
-        By = 0
+#    if (r != 0):
+#        Bx = Br * (x/r)
+#        By = Br * (y/r)
+#    else:
+#        Bx = 0
+#        By = 0
 
-    return np.array( [Bx,By,Bz] )
+    return np.array( [Br,Br,Bz] )
+    #return np.array( [Bx,By,Bz] )
 
 
 def to_cartesian(r,zhat,xhat):
@@ -102,8 +128,8 @@ def B_wrap(target,source):
 # this has the advantage of putting sources (which we want to sum over) on axis=0
 
 # Calculate B vector field
-B_1 = vmap( B_wrap,(0,None))
-B_2 = vmap( B_1,(None,0))
+B_1 = vmap( B_wrap,(0,None) )
+B_2 = vmap( B_1,   (None,0) )
 
 def Bvec(target,source):
 
@@ -118,7 +144,7 @@ def calc_B(targets,source, B_func=jit_Bvec, n_step=3000):
     #N_steps = int(targets.shape[0]/n_step) + 1 
 
 
-    t = Timer()
+    t = Timer.Timer()
     t.start('B calc coils')
     print('  source shape:', source.shape)
     print('  target shape:', targets.shape)
@@ -143,3 +169,5 @@ def calc_B(targets,source, B_func=jit_Bvec, n_step=3000):
     print('btot_max', np.max( np.linalg.norm( Btot , axis=-1 ) ) )
 
     return Btot
+
+
