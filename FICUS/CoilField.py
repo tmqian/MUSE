@@ -38,7 +38,13 @@ def B_local(R,a,I):
     # unpack coordinates
     x,y,z = R/a
     r = np.sqrt( x*x + y*y )
-    rinv = np.nan_to_num(1/r)
+
+    # computes 1/r, returning 0 if r=0
+    #    there is an instabibility due to numeric error from rotation in the neighborhood of r=0
+    #    using step function to set r < error = 0
+    error = 1e-6
+    step = np.heaviside(r-error,0)
+    rinv = np.nan_to_num(1/r) * step
 
     # geometric coefficients
     Q = (1 + r)**2 + z*z
