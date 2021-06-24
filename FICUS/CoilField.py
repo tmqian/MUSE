@@ -7,7 +7,7 @@ import Timer
 #import time
 
 ### Exact Analytic field from Cifta
-# updated 21 June 2021
+# updated 24 June 2021
 
 
 # enable 64 bit, which is necessary for JIT to get values right near the source
@@ -70,19 +70,6 @@ def B_local(R,a,I):
     return np.array( [Bx,By,Bz] )
 
 
-# unused
-#def to_cartesian(r,zhat,xhat):
-#
-#    yhat = np.cross(zhat,xhat)
-# 
-#    x = np.dot(r,xhat)
-#    y = np.dot(r,yhat)
-#    z = np.dot(r,zhat)
-#
-#    return np.array([x,y,z])
-
-
-
 '''
     r1 is test charge location [m]
     r0 is COM of source magnet [m]
@@ -91,19 +78,7 @@ def B_local(R,a,I):
     a  is the circular coil radius [m]
 '''
 
-# manipulating magnets
-#def norm_arr(v):
-#    v = np.array(v)
-#    return v / np.linalg.norm(v,axis=-1)[:,np.newaxis]
-#
-## does not work for ND arrays
-#def norm(v):
-#    v = np.array(v)
-#    return v / mag(v)
-#
-#def mag(v):
-#    return np.sqrt( np.sum(v*v) )
-
+# new norm function, takes advantage of nan_to_num
 def norm(v):
     m = np.nan_to_num(1/np.linalg.norm(v), nan=1)
     return v*m
