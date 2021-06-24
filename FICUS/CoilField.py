@@ -117,32 +117,33 @@ def to_cartesian(r,zhat,xhat):
 #def mag(v):
 #    return np.sqrt( np.sum(v*v) )
 
+def norm(v):
+    m = np.nan_to_num(1/np.linalg.norm(v), nan=1)
+    return v*m
+
 # performs quarternion rotation of v, around direction n, by angle t (positive right-hand rotation)
 def rotate(v,n,t):
-    #n = norm(n)
-    
-    m = np.nan_to_num(1/np.linalg.norm(n), nan=1)
-    n = m*n
+    n = norm(n)
+    #m = np.nan_to_num(1/np.linalg.norm(n), nan=1)
+    #n = m*n
     r = v*np.cos(t) + np.cross(n,v)*np.sin(t) + (1-np.cos(t))*np.dot(v,n)*n
     return r
 
+
 def B_general(r1,r0,n1,I,a):
 
-    n1hat = n1 / np.sqrt( np.dot(n1,n1) )
-    n2hat = np.array( [0,0,1] )
+    n1hat = norm(n1)
+    zhat = np.array( [0,0,1] )
 
-    r = r1 - r0 
-    R = to_cartesian(r,n1hat,n2hat)
+    r = r1 - r0
+    n = np.cross(n1hat,zhat)
+    t = np.arcsin( np.linalg.norm(n) )
 
     # compute local field
-    B = B_local(R,a,I) 
-    # need to reverse transform: basically rotate (0,0,1) into n1
-    a = np.cross(n1hat,n2hat)
-    t = np.arccos(n1hat*n2hat)
-    #t = np.arcsin(a)
-    #n = norm(a)
-    B1 = rotate(B,a,-t)
-    return B1
+    R  = rotate(r,n,t)
+    B1 = B_local(R,a,I)
+    B  = rotate(B1,n,-t)
+    return B
 
 
 def B_wrap(target,source):
