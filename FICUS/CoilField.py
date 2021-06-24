@@ -28,12 +28,6 @@ ax = np.linspace(0,1,N,endpoint=False)
 ek = sp.ellipk(ax)
 ee = sp.ellipe(ax)
 
-#fin = 'ellipse-1000.csv'
-#with open(fin) as f:
-#    datain = f.readlines()
-#data = np.array([line.strip().split(',') for line in datain], float)
-#ax,ek,ee = data.T
-
 def ellipk(m):
     return np.interp(m,ax,ek)
 
@@ -47,6 +41,7 @@ def B_local(R,a,I):
     # unpack coordinates
     x,y,z = R/a
     r = np.sqrt( x*x + y*y )
+    rinv = np.nan_to_num(1/r)
 
     # geometric coefficients
     Q = (1 + r)**2 + z*z
@@ -56,9 +51,6 @@ def B_local(R,a,I):
 
     # Elliptic integrals
     m = 4*r/Q
-    #print(m)
-    #K = sp.ellipk(m)
-    #E = sp.ellipe(m)
     K = ellipk(m)
     E = ellipe(m)
 
@@ -67,32 +59,24 @@ def B_local(R,a,I):
     B1 = B0 / np.pi / np.sqrt(Q)
     
     Bz = B1 * (K - cz*E)
-    Br = B1 * (cr*E - K)
+    Br = B1 * (cr*E - K) * (z * rinv)
  
-    #if (r != 0):
-    #    Bx = Br * (x/r)
-    #    By = Br * (y/r)
-    #else:
-    #    Bx = 0
-    #    By = 0
-
-    #step = np.heaviside(r,0*r)
-    step = np.nan_to_num(1/r)
-    Bx = x* step * Br #* (x/r)
-    By = y* step * Br #* (y/r)
+    Bx = Br * (x * rinv) 
+    By = Br * (y * rinv) 
 
     return np.array( [Bx,By,Bz] )
 
 
-def to_cartesian(r,zhat,xhat):
-
-    yhat = np.cross(zhat,xhat)
- 
-    x = np.dot(r,xhat)
-    y = np.dot(r,yhat)
-    z = np.dot(r,zhat)
-
-    return np.array([x,y,z])
+# unused
+#def to_cartesian(r,zhat,xhat):
+#
+#    yhat = np.cross(zhat,xhat)
+# 
+#    x = np.dot(r,xhat)
+#    y = np.dot(r,yhat)
+#    z = np.dot(r,zhat)
+#
+#    return np.array([x,y,z])
 
 
 
