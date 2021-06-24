@@ -53,7 +53,7 @@ def B_local(R,a,I):
 
     # Elliptic integrals
     m = 4*r/Q
-    print(m)
+    #print(m)
     #K = sp.ellipk(m)
     #E = sp.ellipe(m)
     K = ellipk(m)
@@ -66,15 +66,19 @@ def B_local(R,a,I):
     Bz = B1 * (K - cz*E)
     Br = B1 * (cr*E - K)
  
-#    if (r != 0):
-#        Bx = Br * (x/r)
-#        By = Br * (y/r)
-#    else:
-#        Bx = 0
-#        By = 0
+    #if (r != 0):
+    #    Bx = Br * (x/r)
+    #    By = Br * (y/r)
+    #else:
+    #    Bx = 0
+    #    By = 0
 
-    return np.array( [Br,Br,Bz] )
-    #return np.array( [Bx,By,Bz] )
+    #step = np.heaviside(r,0*r)
+    step = np.nan_to_num(1/r)
+    Bx = x* step * Br #* (x/r)
+    By = y* step * Br #* (y/r)
+
+    return np.array( [Bx,By,Bz] )
 
 
 def to_cartesian(r,zhat,xhat):
@@ -97,6 +101,27 @@ def to_cartesian(r,zhat,xhat):
     a  is the circular coil radius [m]
 '''
 
+# manipulating magnets
+#def norm_arr(v):
+#    v = np.array(v)
+#    return v / np.linalg.norm(v,axis=-1)[:,np.newaxis]
+#
+## does not work for ND arrays
+#def norm(v):
+#    v = np.array(v)
+#    return v / mag(v)
+#
+#def mag(v):
+#    return np.sqrt( np.sum(v*v) )
+
+# performs quarternion rotation of v, around direction n, by angle t (positive right-hand rotation)
+def rotate(v,n,t):
+    #n = norm(n)
+    
+    m = np.nan_to_num(1/np.linalg.norm(n), nan=1)
+    n = m*n
+    r = v*np.cos(t) + np.cross(n,v)*np.sin(t) + (1-np.cos(t))*np.dot(v,n)*n
+    return r
 
 def B_general(r1,r0,n1,I,a):
 
@@ -107,9 +132,14 @@ def B_general(r1,r0,n1,I,a):
     R = to_cartesian(r,n1hat,n2hat)
 
     # compute local field
-    B = B_local(R,a,I)
-
-    return B
+    B = B_local(R,a,I) 
+    # need to reverse transform: basically rotate (0,0,1) into n1
+    a = np.cross(n1hat,n2hat)
+    t = np.arccos(n1hat*n2hat)
+    #t = np.arcsin(a)
+    #n = norm(a)
+    B1 = rotate(B,a,-t)
+    return B1
 
 
 def B_wrap(target,source):
