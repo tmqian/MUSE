@@ -3,7 +3,10 @@ from jax import vmap, jit
 
 from scipy import special as sp
 
-import Timer
+try:
+    import Timer
+except:
+    from FICUS import Timer
 #import time
 
 ### Exact Analytic field from Cifta
