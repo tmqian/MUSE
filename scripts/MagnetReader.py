@@ -89,7 +89,8 @@ class ReadFAMUS():
             
     def update_info(self):
             self.info = np.transpose([self.type, self.symm, self.name] )
-            
+        
+    # this updates the class function with changes made to (data, info)
     def load_data(self):
         X, Y, Z, Ic, M, pho, Lc, MP, MT = np.transpose(self.data)
         coiltype, symmetry,  coilname = np.transpose(self.info)
@@ -136,20 +137,32 @@ class ReadFAMUS():
             fout = self.fname + '_skim.focus' 
             self.writefile(fout)
    
-    # unfinished
+    # tested 6/26/21
     def halfperiod_to_fulltorus(self):
-        x = self.X 
-        y = self.Y 
-        z = self.Z 
-        p = self.pho 
-        X,Y,Z,P = stellarator_symmetry(x,y,z,p)
 
-        ## inside stellarator_symmetry
-        #X = np.concatenate((x,-x,-x,x))
-        #Y = np.concatenate((y,y,-y,-y))
-        #Z = np.concatenate((z,-z,z,-z))
-        #M = np.concatenate((m,-m,m,-m))
+        x,y,z,ic,m,p,lc,mp,mt = self.data.T
+        coiltype, symmetry,  coilname = self.info.T
 
+        coilNAME = np.concatenate([coilname,
+                     shift_name(coilname,1),
+                     shift_name(coilname,2),
+                     shift_name(coilname,3)
+                     ])
+        coilTYPE = np.concatenate([coiltype,coiltype,coiltype,coiltype])
+        SYMMetry = np.concatenate([symmetry,symmetry,symmetry,symmetry])
+
+        X,Y,Z,P = stellarator_symmetry(x,y,z,p) # this assumes NFP=2 for now.
+        IC = np.concatenate([ic, ic, ic, ic])
+        LC = np.concatenate([lc, lc, lc, lc])
+        M = np.concatenate([m, m, m, m]) 
+
+        period = np.pi
+        MT = np.concatenate([mt, period - mt, mt, period - mt])
+        MP = np.concatenate([mp, period - mp, period + mp, 2*period - mp])
+
+        self.data = np.array([X,Y,Z,IC,M,P,LC,MP,MT]).T
+        self.info = np.array([coilTYPE, SYMMetry,  coilNAME ]).T
+        self.load_data()
 
     # does not modify pho, but writes whatever is there
     def writefile(self, fname, q=1):
@@ -337,7 +350,7 @@ class ReadFAMUS():
     def plot_symm(self, export=False, fig=True, show_pipes=True,N_layers=18):
 
         tx,px,m = self.to_towers(N_layers=N_layers)
-        
+    
 
         T = np.concatenate((tx, np.pi-tx[::-1])) # toroidal
         P = np.concatenate((px,px))              # poloidal
@@ -522,6 +535,21 @@ def stellarator_symmetry(x, y, z, m):
     M = np.concatenate((m,-m,m,-m))
     
     return X, Y, Z, M
+
+def shift_name(coilname, N):
+
+    shift = len(coilname) * N
+
+    names = []
+    for label in coilname:
+
+        # magic index 11, is the char in name string which I wish to replace
+
+        idx = int(label[11:])
+        new_label = label[:11] + '%.6i' % (idx + shift)
+        names.append(new_label)
+
+    return names
 
 # manipulating magnets
 def norm_arr(v):
@@ -854,16 +882,16 @@ class Magnet_3D():
 
         # define faces for 'C-shape' orientation N=(0,1,2,3) S=(4,5,6,7) 
         cube_form = [(0,1,2),(0,2,3),(0,1,5),(0,4,5),(0,3,7),(0,4,7),(1,2,5),(2,5,6),(2,3,6),(3,6,7),(4,5,6),(4,6,7)]
-
+    
         N = self.N_magnets
         spacer = np.arange(N)*8 
-
+    
         temp = np.array(cube_form)[np.newaxis,:] + spacer[:,np.newaxis,np.newaxis]
         triangle_array = np.concatenate(temp,axis=0)
-
+    
         color = np.array([1,1,1,1,0,0,0,0]) # North red 1 : South blue 0
         color_array = color[np.newaxis,:] * np.ones(N)[:,np.newaxis]
-
+    
         X,Y,Z = np.array([ self.n1,self.n2,self.n3,self.n4, self.s1,self.s2,self.s3,self.s4]).T
         return X,Y,Z, triangle_array, color_array
 
