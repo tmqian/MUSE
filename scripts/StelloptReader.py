@@ -5,7 +5,7 @@ from netCDF4 import Dataset
 #from coilpy import FourSurf
 from surface import FourSurf
 
-# Updated 26 Jan 2021
+# Updated 26 June 2021
 
 ### Define Angles
 #      User input, ADJUST these!
@@ -149,10 +149,15 @@ class readBOOZ():
 
         if (plot_iota):
             iota = self.iota_b[ self.slist[s_idx] ]
-            plt.plot(tax, iota*tax + np.pi, 'C2--', label = 'iota = %.3f'%iota)
+
+            iota_trace = (iota*tax + np.pi) % (2*np.pi)
+            plt.plot(tax, iota_trace, 'C2.', label = 'iota = %.3f'%iota)
+            #plt.plot(tax, iota*tax + np.pi, 'C2--', label = 'iota = %.3f'%iota)
 
         plt.legend()
-        
+       
+    # This plots ripple well,
+    #     not to be confused with magnetic well from MHD stability   
     def plot_B_well(self, s_idx=1, nfp=20, fig=True):
         
         tax_b = np.linspace(0,nfp*np.pi,1000)
@@ -341,6 +346,7 @@ class readVMEC():
         plt.title('Rotation Transform')
         plt.ylabel('iota')
         plt.xlabel('surface')
+        plt.grid()
 
     def load_plasma(self, plasma_file):
 
