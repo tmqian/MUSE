@@ -900,7 +900,7 @@ class Magnet_3D_gen():
         self.m3 = norm_arr(m3)
 
     # for the Ciftja force (backward compatible)
-    def export_source(self):
+    def export_source_old(self):
         '''
         exports source array for CIFTJA force calculation
         [x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]
@@ -921,7 +921,8 @@ class Magnet_3D_gen():
         L = self.L
         M = self.M
 
-        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, M,H,L]).T
+        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
+        #source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, M,H,L]).T ## I am making a change for backwards compatibility. This might break newer code
         return source
 
     # export 3M magnets
