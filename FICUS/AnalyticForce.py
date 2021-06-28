@@ -189,15 +189,6 @@ def Vd_wrap(target,source):
 vd1 = vmap( grad(Vd_wrap),(0,None))
 vd2 = vmap( vd1,(None,0))
 
-from scipy.linalg import block_diag
-
-def mask_self_interactions(m,n):
-
-    a = np.array([np.ones(m)]).T
-    d = block_diag(*([a] * n))
-    return 1-d
-
-
 
 def Bvec_dipole(target,source):
 
@@ -207,6 +198,15 @@ def Bvec_dipole(target,source):
 
 jit_Bvec_dipole = jit(Bvec_dipole)
 
+
+# probably to be deleted.
+from scipy.linalg import block_diag
+
+def mask_self_interactions(m,n):
+
+    a = np.array([np.ones(m)]).T
+    d = block_diag(*([a] * n))
+    return 1-d
 
 ### define helper functions
 

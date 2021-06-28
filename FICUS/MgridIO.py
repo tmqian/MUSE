@@ -41,15 +41,17 @@ class Read_MGRID():
     def add_field(self,B,name='default'):
 
         
-        # structure Bfield data into arrays (phi,r,z) arrays
+        # structure Bfield data into arrays (phi,z,r) arrays
         bx,by,bz = B.T
-        shape = (self.nphi, self.nr, self.nz) 
-        bx_arr = np.reshape(bx  , shape)
-        by_arr = np.reshape(by  , shape)
-        bz_arr = np.reshape(bz  , shape)
+        shape = (self.nr, self.nz, self.nphi) 
+        bx_arr = np.reshape(bx  , shape).T
+        by_arr = np.reshape(by  , shape).T
+        bz_arr = np.reshape(bz  , shape).T
 
         # pass from cartesian to cylindrical coordinates
         phi = self.export_phi()
+        #cos = np.cos(phi)[np.newaxis,np.newaxis,:]
+        #sin = np.sin(phi)[np.newaxis,np.newaxis,:]
         cos = np.cos(phi)[:,np.newaxis,np.newaxis]
         sin = np.sin(phi)[:,np.newaxis,np.newaxis]
         br_arr =  cos*bx_arr + sin*by_arr
@@ -243,6 +245,7 @@ class Read_MGRID():
 
         # add fields
         for j in np.arange(self.n_ext_cur):
+            
             tag = '_%.3i' % (j+1)
             var_br_001 = ds.createVariable('br'+tag, 'f8', ('phi','zee','rad') )
             var_bp_001 = ds.createVariable('bp'+tag, 'f8', ('phi','zee','rad') )
@@ -251,9 +254,6 @@ class Read_MGRID():
             var_br_001[:,:,:] = self.br_arr[j]
             var_bz_001[:,:,:] = self.bz_arr[j]
             var_bp_001[:,:,:] = self.bp_arr[j]
-        #var_br_001[:,:,:] = np.transpose(br_arr,axes=(2,1,0))
-        #var_bz_001[:,:,:] = np.transpose(bz_arr,axes=(2,1,0))
-        #var_bp_001[:,:,:] = np.transpose(bp_arr,axes=(2,1,0))
         
         ds.close()
 
