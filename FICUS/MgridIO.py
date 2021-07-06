@@ -70,9 +70,35 @@ class Read_MGRID():
         self.n_ext_cur = self.n_ext_cur + 1
 
 
+    def read_netCDF(self,fname):
+        
+        print(' reading:', fname)
+        # overwrites existing class information
+
+        f = nc.Dataset(fname, mode='r')
+        self.nr   = int( get(f, 'ir')  )
+        self.nz   = int( get(f, 'jz')  )
+        self.nphi = int( get(f, 'kp')  )
+        self.nfp  = int( get(f, 'nfp') )
+        self.n_ext_cur  = int( get(f, 'nextcur') )
+
+        self.rmin = float( get(f, 'rmin') )
+        self.rmax = float( get(f, 'rmax') )
+        self.zmin = float( get(f, 'zmin') )
+        self.zmax = float( get(f, 'zmax') )
+
+        self.cur_labels = get(f, 'coil_group')
+
+        # implement read fields in for loop
+        #self.br_arr = [] 
+        #self.bz_arr = [] 
+        #self.bp_arr = [] 
+
+        print(' overwriting  mgrid coordinates: (nr,nphi,nz,nfp) = ({}, {}, {}, {})'.format(self.nr,self.nphi,self.nz,self.nfp))
+
     # unused
     def set_params(self,nr=51,nz=51,nphi=24,nfp=2,rmin=0.20,rmax=0.40,zmin=-0.10,zmax=0.10,nextcur=0):
-        pass
+
         self.nr = nr
         self.nz = nz
         self.nphi = nphi
@@ -182,6 +208,11 @@ class Read_MGRID():
         self.bp_arr = bp_arr
 
 
+
+        ds = nc.Dataset(fin, 'r', format='NETCDF4')
+
+        ds.close()
+
     def write(self,fout):
 
         ### Write
@@ -228,8 +259,8 @@ class Read_MGRID():
         
         var_coil_group[:] = self.cur_labels
         #var_coil_group[:] = self.curlabel
-        var_mgrid_mode[:] = 'N' # R - Raw, S - scaled, N - none (old version)
-        var_raw_coil_cur[:] = (1) # hard-coded, this information was not included in the binary file
+        var_mgrid_mode[:] = 'R' # R - Raw, S - scaled, N - none (old version)
+        var_raw_coil_cur[:] = np.ones(self.n_ext_cur)
         
         
         
@@ -318,3 +349,8 @@ class Read_MGRID():
 
 def pad_string(string):
     return '{:^30}'.format(string).replace(' ','_')
+
+
+# function for reading netCDF files
+def get(f,key):
+    return f.variables[key][:]
