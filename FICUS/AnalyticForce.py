@@ -176,7 +176,8 @@ def V_dipole(r1,r0,n1,H,L,M):
 def Vd_wrap(target,source):
 
     x1,y1,z1 = target
-    x0,y0,z0,nx,ny,nz, H,L,M = source
+    x0,y0,z0,nx,ny,nz,u,v,w, H,L,M = source
+    #source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
 
     r1 = np.array([x1,y1,z1])
 
@@ -193,7 +194,8 @@ vd2 = vmap( vd1,(None,0))
 def Bvec_dipole(target,source):
 
     gradV = vd2(target,source)
-    B     = -1*np.sum(gradV, axis=0)
+    #B     = -1*np.sum(gradV, axis=0) # old
+    B = -1*gradV
     return B
 
 jit_Bvec_dipole = jit(Bvec_dipole)

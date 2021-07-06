@@ -3,15 +3,9 @@ from jax import vmap, jit
 
 from scipy import special as sp
 
-<<<<<<< HEAD
-try: 
-    import Timer
-except: 
-=======
 try:
     import Timer
 except:
->>>>>>> e55823ab7b67f86cee8aa6e67d331873018a7c58
     from FICUS import Timer
 #import time
 
