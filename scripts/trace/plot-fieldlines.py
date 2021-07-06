@@ -15,10 +15,13 @@ inputs
 '''
 
 fin = sys.argv[1]
-fboundary = sys.argv[2]
+_show = True
 
+try:
+    fboundary = sys.argv[2]
+except:
+    fboundary = 'PG2p.qa19.plasma'
 #fboundary = 'ncsx_2p_vacuum.plasma'
-#fboundary = 'PG2p.qa20.plasma'
 
 def plasma_plot(zeta=0,npoints=360):
     rb,zb = plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
@@ -69,7 +72,6 @@ npoinc = get(f,'npoinc')[0]
 nlines = get(f,'nlines')[0]
 plasma = FourSurf.read_focus_input(fboundary)
 
-
 # make plots
 temp = cm.rainbow(np.linspace(0, 1, 64))
 cmap = np.concatenate((temp,temp[::-1]))
@@ -85,13 +87,13 @@ field_plot( phi=int(npoinc/2) )
 title = fin[11:-3]
 plt.suptitle(title)
 
+if (_show):
+    plt.draw()
+    plt.show()
 
 # save
 fout = 'trace-%s.png' % title
 plt.savefig(fout)
 print('wrote to file: %s' % fout)
 
-#fout = 'trace-%s.pdf' % title
-#plt.savefig(fout)
-#print('wrote to file: %s' % fout)
 
