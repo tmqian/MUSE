@@ -27,6 +27,11 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 
+try: 
+    import MagnetReader as mr
+except:
+    from scripts import MagnetReader as mr
+
 
 ### main
 print('Welcome to FAMUS Wyrm Finder')
@@ -34,12 +39,14 @@ print('Welcome to FAMUS Wyrm Finder')
 # open file
 try:
     fname = sys.argv[1]
-    with open(fname) as f:
-        data_in = f.readlines()
+    fd = mr.ReadFAMUS(fname)
+    Pho = fd.pho
+#    with open(fname) as f:
+#        data_in = f.readlines()
     
 except:
     print('  error: issue finding file')
-    print('  usage: python script.py fname.focus N_slices')
+    print('  usage: python script.py fname.focus N_slices[default=18]')
     sys.exit()
     
 print('Read file %s' % fname)
@@ -47,14 +54,13 @@ print('Read file %s' % fname)
 
 # load data
 
-data0 = np.array([line.strip().split(',') for line in data_in[3:]])
-try: # some files end with an extra comma
-    data1 = np.array((data0[:,3:]),float)
-    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
-except:
-    data1 = np.array((data0[:,3:-1]),float)
-    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
-
+#data0 = np.array([line.strip().split(',') for line in data_in[3:]])
+#try: # some files end with an extra comma
+#    data1 = np.array((data0[:,3:]),float)
+#    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
+#except:
+#    data1 = np.array((data0[:,3:-1]),float)
+#    X,Y,Z,Ic,M,Pho,Lc,Mp,Mt = np.transpose(data1)
 
 # set tower height, calculate number of towers
 try:
@@ -70,7 +76,79 @@ N_towers = int(n_dip / N_slices)
 print('  N Dipoles, Slices, Towers: {} {} {}'.format(n_dip,N_slices,N_towers) )
 
 
+def norm(v):
+    v = np.array(v)
+    return v / mag(v)
+
+def mag(v):
+    return np.sqrt( np.sum(v*v) )
+
+# given list of xyz vectors, return nhat relative to a torus
+def xyz_to_n(xyz,R0=0.3048):
+    
+    nhat = []
+        
+    N = len(xyz)
+    for k in np.arange(N):
+        
+        x,y,z = xyz[k]
+        u = np.arctan2(y,x)
+        
+        x0 = R0 * np.cos(u)
+        y0 = R0 * np.sin(u)
+        z0 = 0
+
+        r  = xyz[k]
+        r0 = np.array( [x0,y0,z0] )
+        n = norm(r-r0)
+        
+        nhat.append(n)
+        
+    return np.array(nhat)
+
+# tower-height
+def write_scad(data, fname='test.txt'):
+    # format: data = np.transpose((X,Y,Z,u,v,w,H))
+    
+    with open(fname,'w') as f:
+        f.write('N_DIP = %i; \n'% len(data) )
+        f.write('data = [')
+        for line in data[:-1]:
+            if line[-1]==0:
+                continue
+            f.write('[ {}, {}, {}, {:.6}, {:.6}, {:.6}, {}],\n'.format(*line))
+
+        f.write('[ {}, {}, {}, {:.6}, {:.6}, {:.6}, {}]];'.format(*(data[-1]) ))
+        
+  
+
+# manipulate data
+X, Y, Z, Ic, M, Pho, Lc, MP, MT = np.transpose(fd.data[:N_towers])
+
+# go to UV space
+U = np.arctan2(Y,X)
+R = np.sqrt(X*X + Y*Y)
+R0 = 0.3048
+A = np.sqrt( (R-R0)**2 + Z**2 )
+V = np.arctan2(Z, R-R0)
+
+xyz = np.transpose([X,Y,Z])
+nhat = xyz_to_n(xyz)
+
+# copy (maybe this still writes slices, instead of towers)
+u,v,w = nhat.T
+
+# get toroidal angle
+U = np.arctan2(Y,X)
+
+# split into half pipes
+idx1 = np.array( U < np.pi/4 , int ) * np.array( U > -np.pi/4 , int )
+idx2 = np.array( U > np.pi/4 , int ) * np.array( U < 3*np.pi/4 , int )
+
+
+
 # unfold data into tower map
+Pho = fd.pho
 mat = np.reshape(Pho,(N_slices,N_towers)).T
 arg = np.reshape(np.arange(n_dip), (N_slices,N_towers)).T
 
@@ -95,7 +173,7 @@ def find_base(tower):
         return 0
 
     count = 0
-    offset = 4
+    offset = 4 # hard-coded
     for s in tower[offset:]:
         if (s > 0):
             break
@@ -103,7 +181,7 @@ def find_base(tower):
 
     return count
 
-mask = np.arange(18) + 1 - 4
+mask = np.arange(N_slices) + 1 - 4
 a = np.abs(mat) * mask[np.newaxis,:]
 height = np.max(a, axis=1)
 mass = np.sum( np.abs(mat), axis=1 )
@@ -113,6 +191,24 @@ arg_gap = np.argwhere( height - mass - base > 0)
 
 print('n towers w gaps       :', len(arg_gap) )
 print('n towers w spaces     :', len(arg_space) )
+
+# check
+#(np.sum(idx1) + np.sum(idx2))/2
+data = np.transpose((X,Y,Z,u,v,w,height))
+
+mag1 = data[ np.argwhere(idx1) ][:,0]
+mag2 = data[ np.argwhere(idx2) ][:,0]
+
+#stop = 9999 # use this if more than 9999 towers, because openSCAD array size maxes out at 9999
+#write_scad(mag1[:stop], fname='0711-scad-x45.txt')
+#write_scad(mag1[stop:], fname='0711-scad-y45.txt')
+write_scad(mag1, fname='0711-scad-x45.txt')
+write_scad(mag2, fname='0711-scad-y45.txt')
+
+import pdb
+pdb.set_trace()
+
+sys.exit()
 
 # prepare plots
 
