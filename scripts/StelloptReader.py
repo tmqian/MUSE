@@ -71,6 +71,7 @@ def read_neo(f):
     surf, eps_eff, reff, iot, b_ref, r_ref = np.transpose(data)
     return surf,eps_eff
 
+# plots eps_eff**3/2 against flux radius
 def plot_neo(f,ref=False):
     #f = files_n[i]
     surf,eps_eff = read_neo(f)
@@ -91,7 +92,41 @@ def plot_neo(f,ref=False):
     plt.yscale('log')
     
     plt.xlabel('flux surface s',fontsize=14)
-    plt.title(r'$\varepsilon_{eff}^{3/2}$',fontsize=14)
+    plt.ylabel(r'$\varepsilon_{eff}^{3/2}$',fontsize=14)
+    plt.title('Neoclassical Transport',fontsize=14)
+
+    
+    plt.grid(True)
+    #plt.title('EPS_EFF')
+    plt.legend()
+    plt.xlim(0,1)
+    plt.tight_layout()
+
+# plots eps_eff against radius
+def plot_neo_rad(f,ref=False):
+    #f = files_n[i]
+    surf,eps_eff = read_neo(f)
+    
+    N = len(surf)
+    N = 48
+    #sx = np.linspace(0,1,N)
+    
+    s = np.array([16,26,40])
+    
+    if (ref):
+        #e = np.array([7.402E-04, 8.604E-04, 1.054E-03]) # CFQS
+        e = np.array([5.64E-04, 7.86E-04, 1.20E-03]) # NCSX
+        plt.plot( np.sqrt(s/N), e**(2/3.) ,'C8*',label='fixed boundary target NCSX')
+        #plt.plot( s/N,e,'C8*',label='fixed boundary target NCSX')
+    
+    tag = f.split('/')[-1][8:]
+    plt.plot( np.sqrt(surf/N), eps_eff**(2/3.), '.--',label=tag)
+    #plt.plot(surf/N,eps_eff,'.--',label=tag)
+    plt.yscale('log')
+    
+    plt.xlabel('normalized radius (r/a)',fontsize=14)
+    plt.ylabel(r'$\varepsilon_{eff}$',fontsize=14)
+    plt.title('Neoclassical Transport',fontsize=14)
 
     
     plt.grid(True)
@@ -151,7 +186,8 @@ class readBOOZ():
             iota = self.iota_b[ self.slist[s_idx] ]
 
             iota_trace = (iota*tax + np.pi) % (2*np.pi)
-            plt.plot(tax, iota_trace, 'C2.', label = 'iota = %.3f'%iota)
+            #plt.plot(tax, iota_trace, 'C2.', label = 'iota = %.3f'%iota)
+            plt.plot(tax, iota_trace, 'C2--', label = 'iota = %.3f'%iota)
             #plt.plot(tax, iota*tax + np.pi, 'C2--', label = 'iota = %.3f'%iota)
 
         plt.legend()
@@ -204,11 +240,14 @@ class readBOOZ():
             plt.figure(figsize=(8,4))
         
         plt.plot([],[],'w.',label=self.tag)
+
+        bmax = 0.15
+        #bmax = np.max(np.abs(self.bmnc[:, big_idx[0] ])) # normalize to largest mode
         for j in big_idx:
             m = self.xm[j]
             n = self.xn[j]
             b_mode = bmn[j]
-            plt.plot(sax, self.bmnc[:,j],'.-',label='(%i,%i)'%(n,m))
+            plt.plot(sax, self.bmnc[:,j]/bmax,'.-',label='(%i,%i)'%(n,m))
 
         s = self.slist[s_idx] / self.ns
         plt.axvline(s, ls='--',color='k',lw=0.7, label='sorted by s=%.2f' % s )
@@ -216,12 +255,48 @@ class readBOOZ():
         plt.legend(loc=2,frameon=False)
 
         plt.xlabel(r'flux surface $s$', fontsize=14)
-        plt.ylabel(r'$b_{nm}$', fontsize=14)
+        plt.ylabel(r'$b_{nm} / B_0$', fontsize=14)
+        #plt.ylabel(r'$b_{nm} / b_{max}$', fontsize=14)
+        #plt.ylabel(r'$b_{nm}$', fontsize=14)
         plt.title('Field amplitude (n,m)', fontsize=14)
         
         plt.xlim(-.05,1.05)
         plt.tight_layout()
         
+    def plot_booz_spectrum_log(self, n_modes=10, fig=True,s_idx=1):
+  
+        sax = self.slist / self.ns
+        bmn = self.bmnc[s_idx]
+        big_idx = np.argsort( abs(bmn) ) [::-1] [1:n_modes+1]
+        
+    
+        if (fig):
+            plt.figure(figsize=(8,4))
+        
+        plt.plot([],[],'w.',label=self.tag)
+
+        bmax = 0.15
+        #bmax = np.max(np.abs(self.bmnc[:, big_idx[0] ])) # normalize to largest mode
+        for j in big_idx:
+            m = self.xm[j]
+            n = self.xn[j]
+            b_mode = bmn[j]
+            plt.plot(sax, np.abs(self.bmnc[:,j]/bmax),'.-',label='(%i,%i)'%(n,m))
+
+        s = self.slist[s_idx] / self.ns
+        plt.axvline(s, ls='--',color='k',lw=0.7, label='sorted by s=%.2f' % s )
+
+        plt.legend(loc=2,frameon=False)
+        plt.yscale('log')
+
+        plt.xlabel(r'flux surface $s$', fontsize=14)
+        plt.ylabel(r'$log( b_{nm} / B_0 )$', fontsize=14)
+        #plt.ylabel(r'$b_{nm} / b_{max}$', fontsize=14)
+        #plt.ylabel(r'$b_{nm}$', fontsize=14)
+        plt.title('Field amplitude (n,m)', fontsize=14)
+        
+        plt.xlim(-.05,1.05)
+        plt.tight_layout()
         
 #     def plot_1d_hist(self):
         
