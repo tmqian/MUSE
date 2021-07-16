@@ -193,8 +193,7 @@ print('n towers w gaps       :', len(arg_gap) )
 print('n towers w spaces     :', len(arg_space) )
 
 # check
-#(np.sum(idx1) + np.sum(idx2))/2
-data = np.transpose((X,Y,Z,u,v,w,height))
+data = np.transpose((X,Y,Z,u,v,w,height)) # for cavitities
 
 mag1 = data[ np.argwhere(idx1) ][:,0]
 mag2 = data[ np.argwhere(idx2) ][:,0]

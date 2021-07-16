@@ -48,6 +48,7 @@ class ReadPlasma():
         n_plasma = np.transpose([nx,ny,nz])
     
         N_plasma = len(r_plasma)
+        self.N_plasma = N_plasma
     
         # save to class
         self.r_plasma = np.transpose([px,py,pz])
@@ -59,7 +60,6 @@ class ReadPlasma():
         self.N_theta = h5_coilsurf.Nteta
         self.N_zeta  = h5_coilsurf.Nzeta
     
-        self.N_plasma = N_plasma
     
         print('Plasma Surface Loaded')
         print('  N_surface:', N_plasma)

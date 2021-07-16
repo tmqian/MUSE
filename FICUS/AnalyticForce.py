@@ -159,6 +159,7 @@ vt2 = vmap( vt1,(None,0))
 '''
 
 
+# ideal dipole field
 def V_dipole(r1,r0,n1,H,L,M):
 
     nhat = n1 / np.sqrt( np.dot(n1,n1) )
@@ -176,9 +177,17 @@ def V_dipole(r1,r0,n1,H,L,M):
 def Vd_wrap(target,source):
 
     x1,y1,z1 = target
-    x0,y0,z0,nx,ny,nz,u,v,w, H,L,M = source
-    #source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
 
+    # maybe it would be wiser to implement these as separate functions
+    # having one function take two different input formats sounds like an invitation for bugs
+#    try:
+#        x0,y0,z0,nx,ny,nz,M = source
+#    except:
+#        print('converting 3D magnet to ideal dipole')
+#        x0,y0,z0,nx,ny,nz,u,v,w, H,L,M = source
+#        #source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
+
+    x0,y0,z0,nx,ny,nz,u,v,w, H,L,M = source
     r1 = np.array([x1,y1,z1])
 
     r0 = np.array([x0,y0,z0])
@@ -245,7 +254,6 @@ def calc_B(targets,source, B_func=jit_Bvec, n_step=5000, _face=True):
     arr = np.arange(N_steps)*n_step
     
     Bout = [ B_func(targets[j:j+n_step], source) for j in arr]
-
 
     block = np.concatenate(Bout,axis=1)
     Btot = np.sum( block, axis=0).block_until_ready()

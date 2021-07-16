@@ -1,4 +1,4 @@
-# this program converts binary mgrid to a netCDF mgrid
+# this program converts binary mgrid to a netCDF mgri
 
 import numpy as np
 import netCDF4 as nc
