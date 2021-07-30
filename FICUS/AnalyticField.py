@@ -6,13 +6,76 @@ from FICUS import MagnetReader as mr
 import time
 
 ### Exact Analytic field from Cifta
-# updated 26 May 2021
-# (deprecated) the library is now replaced by AnaylticField.py
+# updated 30 July 2021
+# This copies and replaces the AnalyticForce.py 
+#    one addition is the Art Brooks / Thome direct formulation of B
 
 
 # enable 64 bit, which is necessary for JIT to get values right near the source
 from jax.config import config
 config.update("jax_enable_x64", True)
+
+def B_3d_local(R,magnet, internal=False):
+
+    # a = L/2, b = W/2, c = H/2
+    a,b,c,M = magnet
+    Hx,Hy, Hz = 0,0,0
+    arr = [-1, 1]
+    for sx in arr:
+        for sy in arr:
+            for sz in arr:
+                x,y,z = R + np.array([ sx*a, sy*b, sz*c ])
+                r = np.sqrt(x*x + y*y + z*z)
+                s = sx*sy*sz
+
+                Hx += s * np.log(y + r)
+                Hy += s * np.log(x + r)
+                Hz += s * (np.arctan2(x*z, y*r) + np.arctan2(y*z, x*r))
+
+    # set up walls
+    x,y,z = R
+    tx = np.heaviside(a - np.abs(x),0.5)
+    ty = np.heaviside(b - np.abs(y),0.5)
+    tz = np.heaviside(c - np.abs(z),0.5)
+
+    H = np.array([Hx,Hy,Hz]) * M / (4 * np.pi)
+    if (internal):
+        tm = 2*tx*ty*tz*M
+        H += np.array( [tm*0, tm*0, tm] ) 
+
+    return H
+
+def B3d_wrap(target,source):
+
+    x1,y1,z1 = target
+    # could make an option for square W=L
+    x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,W,M = source
+
+    r1 = np.array([x1,y1,z1])
+
+    r0 = np.array([x0,y0,z0])
+    n1 = np.array([nx,ny,nz])
+    n2 = np.array([ux,uy,uz])
+    magnet = np.array( [L/2, W/2, H/2, M] )
+    #return V_general(r1,r0,n1,n2,H,L,M)
+
+def B3d_general(r1,r0,n1,n2,magnet):
+
+    # maybe assume they are normalized?
+    rp = r1 - r0
+    n1hat = n1 / np.sqrt( np.dot(n1,n1) )
+    n2hat = n2 / np.sqrt( np.dot(n2,n2) ) # this is the same for both plates (since there is no shear)
+    Rp = to_cartesian(rp,n1hat,n2hat)
+
+    Bprime = B_3d_local(Rp,magnet)
+
+    # need to inverse transform
+    zhat = np.array([0,0,1])
+    xhat = np.array([1,0,0])
+    B = to_cartesian(Bprime,zhat,xhat)
+    return B
+
+
 
 
 def F(a,b,c):
