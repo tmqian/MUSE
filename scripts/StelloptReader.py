@@ -369,7 +369,7 @@ class readVMEC():
             plt.plot(R*100,Z*100,'%s--'%color,lw=0.7)
 
 
-        plot_circle(R=100*self.R,  a=100*self.a)
+        #plot_circle(R=100*self.R,  a=100*self.a)
         plt.axis('equal')
         plt.title(r'$\zeta = %.2f$'%phi)
         plt.axis('square')

@@ -1,15 +1,19 @@
 import StelloptReader as sr
 import sys
 import matplotlib.pyplot as plt
+import numpy as np
 
 # updated 5 February 2021
 '''
-  usage: python plot_stellopt.py <file_tag>
+  usage: python plot_stellopt.py <file_tag> <(opt)boundary.plasma>
 
   Looking for
      wout_fname.nc
      boozmn_fname.nc
      neo_out.fname
+
+  Give optional 2nd file, if you want to draw a target boundary on the vmec equilibrium.
+  This takes FOCUS .plasma format
 '''
 fname = sys.argv[1]
 
@@ -22,11 +26,12 @@ vd = sr.readVMEC(f_vmec)
 try:
     f_plasma = sys.argv[2]
     print('  loading plasma file: ', f_plasma)
+    vd.load_plasma(f_plasma)
 except:
     #f_plasma = '../famus/estell2p.qa15.plasma'
     f_plasma = 'PG2p.qa19.plasma'
-vd.load_plasma(f_plasma)
-vd.plot_vmec_3()
+
+vd.plot_vmec_3( phi=[0,np.pi/4, np.pi/2] )  # default setting for NFP=2
 plt.draw()
 plt.savefig('vmec_%s.png' % fname)
 

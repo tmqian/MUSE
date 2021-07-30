@@ -925,7 +925,7 @@ class Magnet_3D():
 # this class reads a 3D magnet specified by 15 variables
 class Magnet_3D_gen():
 
-    def __init__(self,fname, R=0.3048):
+    def __init__(self,fname, R=0.3048, HLW=False):
 
         # read file
         with open(fname) as f:
@@ -936,7 +936,10 @@ class Magnet_3D_gen():
         self.N_magnets = len(data)
 
         # unpack data
-        x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M, mx,my,mz = data.T
+        if (HLW):
+            x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,W,M, mx,my,mz = data.T # 16 variable version
+        else:
+            x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M, mx,my,mz = data.T
 
         # sort into vectors
         self.r0 = np.array([x0,y0,z0]).T
@@ -954,7 +957,7 @@ class Magnet_3D_gen():
         self.m3 = norm_arr(m3)
 
     # for the Ciftja force (backward compatible)
-    def export_source_old(self):
+    def export_source_old(self, HLM=True):
         '''
         exports source array for CIFTJA force calculation
         [x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]
@@ -975,8 +978,10 @@ class Magnet_3D_gen():
         L = self.L
         M = self.M
 
-        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
-        #source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, M,H,L]).T ## I am making a change for backwards compatibility. This might break newer code
+        if (HLM):
+            source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]).T
+        else:       
+            source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz, M,H,L]).T ## I am making a change for backwards compatibility. This might break newer code
         return source
 
     # export 3M magnets
@@ -1052,10 +1057,11 @@ class Magnet_3D_gen():
         print('Preparing to write file')
         with open(fout,'w') as f:
         
-            f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], M [A/m], mx, my, mz \n')
+            f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], W [m], M [A/m], mx, my, mz \n')
+            #f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], M [A/m], mx, my, mz \n')
             for line in data:
                 
-                out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(*line)
+                out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(*line)
                 print(out,file=f)
         print('  Wrote to %s' % fout)
         

@@ -87,13 +87,14 @@ field_plot( phi=int(npoinc/2) )
 title = fin[11:-3]
 plt.suptitle(title)
 
-if (_show):
-    plt.draw()
-    plt.show()
-
 # save
 fout = 'trace-%s.png' % title
 plt.savefig(fout)
 print('wrote to file: %s' % fout)
+
+if (_show):
+    plt.draw()
+    plt.show()
+
 
 

@@ -13,3 +13,4 @@ for f in files:
     fname = 'input.' + f[12:] + '-fl'
     print(' writing: %s' % fname)
     os.system('cp scripts/trace/input.sample-fieldline %s' % fname)
+    #os.system('cp trace/input.sample-fieldline %s' % fname)
