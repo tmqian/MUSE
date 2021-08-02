@@ -49,7 +49,12 @@ def B3d_wrap(target,source):
 
     x1,y1,z1 = target
     # could make an option for square W=L
-    x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,W,M = source
+    try:
+        x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,W,M = source
+    except:
+        print('reading HLM instead of HLWM (backward compatibility activated)')
+        x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M = source
+        W = L
 
     r1 = np.array([x1,y1,z1])
 
