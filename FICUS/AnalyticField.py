@@ -57,7 +57,7 @@ def B3d_wrap(target,source):
     n1 = np.array([nx,ny,nz])
     n2 = np.array([ux,uy,uz])
     magnet = np.array( [L/2, W/2, H/2, M] )
-    #return V_general(r1,r0,n1,n2,H,L,M)
+    return B3d_general(r1,r0,n1,n2,magnet)
 
 def B3d_general(r1,r0,n1,n2,magnet):
 
@@ -72,10 +72,22 @@ def B3d_general(r1,r0,n1,n2,magnet):
     # need to inverse transform
     zhat = np.array([0,0,1])
     xhat = np.array([1,0,0])
-    B = to_cartesian(Bprime,zhat,xhat)
+
+    zhatp = to_cartesian(zhat,n1hat,n2hat)
+    xhatp = to_cartesian(xhat,n1hat,n2hat)
+
+    B = to_cartesian(Bprime,zhatp,xhatp)
     return B
 
 
+# Calculate B vector field
+B_vmap1 = vmap( B3d_wrap,(0,None))
+B_vmap2 = vmap( B_vmap1,(None,0))
+
+def B3d_vec(target,source):
+    return B_vmap2(target,source)
+
+jit_B3d = jit(B3d_vec)
 
 
 def F(a,b,c):
