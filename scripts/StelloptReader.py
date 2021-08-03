@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 
 from netCDF4 import Dataset
 #from coilpy import FourSurf
-from surface import FourSurf
-
+try:
+    from surface import FourSurf
+except:
+    print('no surface reader library')
 # Updated 26 June 2021
 
 ### Define Angles
@@ -345,6 +347,7 @@ class readVMEC():
         self.rmnc = get(f,'rmnc')
         self.zmns = get(f,'zmns')
         self.iota = get(f,'iotaf')
+        self.nfp = get(f,'nfp')
 
         self.plasma_file = False
         
@@ -373,8 +376,8 @@ class readVMEC():
         plt.axis('equal')
         plt.title(r'$\zeta = %.2f$'%phi)
         plt.axis('square')
-        plt.ylabel('Z [cm]', fontsize=12)
-        plt.xlabel('R [cm]', fontsize=12)
+        plt.ylabel('Z [m]', fontsize=12)
+        plt.xlabel('R [m]', fontsize=12)
         
         if (self.plasma_file):
             self.plasma_plot(zeta=phi,npoints=360)
@@ -394,10 +397,14 @@ class readVMEC():
 
         colors = ['C0','C1','C2']
 
+        # new
+        phi2 = np.array([0,0.5,1]) * np.pi / self.nfp  
+
         legend = True
         for k in np.arange(N):
             plt.subplot(1,N,k+1)
-            self.plot_single_angle(phi[k], color=colors[k], legend=legend)
+            self.plot_single_angle(phi2[k], color=colors[k], legend=legend)
+            #self.plot_single_angle(phi[k], color=colors[k], legend=legend)
             legend = False
         plt.tight_layout()
         
@@ -431,5 +438,6 @@ class readVMEC():
     def plasma_plot(self, zeta=0,npoints=360):
         
         rb,zb = self.plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
-        plt.plot(rb*100,zb*100,'tab:gray',ls='--',lw=.7)
+        plt.plot(rb,zb,'tab:gray',ls='--',lw=.7)
+        #plt.plot(rb*100,zb*100,'tab:gray',ls='--',lw=.7)
     
