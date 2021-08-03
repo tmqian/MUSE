@@ -369,7 +369,8 @@ class readVMEC():
     def plot_single_angle(self,phi,color='C0',legend=True):
         for s in [1,5,10,15,20,25,30,35,40,45,-1]:
             R,Z = self.get_surface(N_poloidal_VMEC ,s=s, phi=phi)
-            plt.plot(R*100,Z*100,'%s--'%color,lw=0.7)
+            #plt.plot(R*100,Z*100,'%s--'%color,lw=0.7)
+            plt.plot(R,Z,'%s--'%color,lw=0.7)
 
 
         #plot_circle(R=100*self.R,  a=100*self.a)
@@ -389,22 +390,19 @@ class readVMEC():
             plt.plot([],[],'%s--'%color)
         
 
-    def plot_vmec_3(self, phi=[0,np.pi/4, np.pi/2]):
+    def plot_vmec_3(self):
+    #def plot_vmec_3(self, phi=[0,np.pi/4, np.pi/2]):
     
         plt.figure(figsize=(11,3.5))
 
+        phi = np.array([0,0.5,1]) * np.pi / self.nfp  
         N = len(phi)
-
         colors = ['C0','C1','C2']
-
-        # new
-        phi2 = np.array([0,0.5,1]) * np.pi / self.nfp  
 
         legend = True
         for k in np.arange(N):
             plt.subplot(1,N,k+1)
-            self.plot_single_angle(phi2[k], color=colors[k], legend=legend)
-            #self.plot_single_angle(phi[k], color=colors[k], legend=legend)
+            self.plot_single_angle(phi[k], color=colors[k], legend=legend)
             legend = False
         plt.tight_layout()
         

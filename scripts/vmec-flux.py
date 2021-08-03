@@ -20,7 +20,7 @@ f_neo  = 'neo_out.'+ fname
 print('reading vmec file: ', f_vmec)
 vd = sr.readVMEC(f_vmec)
 
-vd.plot_vmec_3( phi=[0,np.pi/4, np.pi/2] )  # default setting for NFP=2
+vd.plot_vmec_3()
 plt.draw()
 #plt.savefig('vmec_%s.png' % fname)
 
@@ -29,7 +29,7 @@ phi   = sr.get(vd.f,'phi')
 chipf = sr.get(vd.f,'chipf')
 chi   = sr.get(vd.f,'chi')
 
-plt.figure(figsize=(9,4))
+plt.figure(figsize=(11,3.5))
 
 s = np.arange(len(phipf))
 plt.subplot(1,3,1)

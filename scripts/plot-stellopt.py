@@ -31,7 +31,8 @@ except:
     #f_plasma = '../famus/estell2p.qa15.plasma'
     f_plasma = 'PG2p.qa19.plasma'
 
-vd.plot_vmec_3( phi=[0,np.pi/4, np.pi/2] )  # default setting for NFP=2
+vd.plot_vmec_3()
+#vd.plot_vmec_3( phi=[0,np.pi/4, np.pi/2] )  # default setting for NFP=2
 plt.draw()
 plt.savefig('vmec_%s.png' % fname)
 
