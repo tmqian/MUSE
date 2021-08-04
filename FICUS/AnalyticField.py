@@ -43,7 +43,9 @@ def B_3d_local(R,magnet, internal=False):
         tm = 2*tx*ty*tz*M
         H += np.array( [tm*0, tm*0, tm] ) 
 
-    return H
+#    return H
+    B = H * 4 * np.pi /1e7
+    return B
 
 def B3d_wrap(target,source):
 
