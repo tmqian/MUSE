@@ -12,16 +12,17 @@ and evaluates the field on targets set up by MGRID
 
 Then it writes the field to an MGRID netCDF
 
-Modified by Dominic to read square trim coils
+Changed output file name to match the input file. Code now asks for input file for trim coils.
+Made compatible with magnet-to-poincare.py
 
-Updated 10 August 2021
+Updated 12 August 2021
 '''
 
 path = './'
 fin = 'block_zot80_3sq_1.csv'        # 3D Dipole (engineering)
 f_pmag = 'zot80_3d.csv'              # 3D Dipole (physics)
 f_coil = 'phased-tf-433A-33N.ficus'  # FICUS Coils (BUSTED)
-f_trim = 'trace_temp.csv'
+f_trim = sys.argv[1]
 
 #f_coil = 'tf-coils-pg19-halfp.h5'
 #plasma = pr.ReadPlasma(f_coil)
@@ -30,15 +31,16 @@ f_trim = 'trace_temp.csv'
 
 ### Sets MGRID parameters (cylindrical coordinates)
 
-NR = 21      # 101 number radial points
-NZ = 21      # 101 number z points
-NPHI = 6     # 72 number of azimuthal points, per field period
+NR = 101      # 101 number radial points
+NZ = 101      # 101 number z points
+NPHI = 72     # 72 number of azimuthal points, per field period
 RMIN = 0.22   
 RMAX = 0.38
 ZMIN = -0.08
 ZMAX = 0.08
 
-fout = 'mgrid-test.nc'  # MGRID output filename
+tag = f_trim[:-4]
+fout = tag + '.nc'  # MGRID output filename
 
 # PM source
 mag    = mr.Magnet_3D(path+fin)
@@ -46,15 +48,17 @@ source = mag.export_source()
 #mag = mr.Magnet_3D_gen(path+f_pmag)
 #source = mag.export_source_old()
 
+
 # TF source (write this as an import function in CF)
 with open(f_coil) as f:
     datain = f.readlines()
 coils = np.array([ line.strip().split(',') for line in datain], float)
 
-# make new part for reading trim coils
+
+# Trim coil source
 with open(f_trim) as f:
     datain = f.readlines()
-trim_coils = np.array([ line.strip().split(',') for line in datain[1:]], float)
+trim_coils = np.array([ line.strip().split(',') for line in datain], float)
 
 
 # Targets
@@ -63,10 +67,11 @@ targets = mgrid.init_targets()
 
 
 # Evaluate B
-#B_pmag = af.calc_B(targets,source,_face=False, B_func=af.jit_Bvec_dipole)
+B_trim = af.calc_B(targets,trim_coils,_face=False, B_func=af.jit_B3d, n_step=1000)
 B_coil = cf.calc_B(targets,coils)
-B_trim = af.jit_B3d(targets,trim_coils)
-B_pmag = af.calc_B(targets,source,_face=False, n_step=1000)
+#B_trim = af.jit_B3d(targets,trim_coils)
+B_pmag = af.calc_B(targets,source,_face=False, B_func=af.jit_B3d, n_step=1000)
+
 
 # debugging: saves output as csv, in addition to mgrid
 def save(fname,data):
