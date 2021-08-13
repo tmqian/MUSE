@@ -441,7 +441,6 @@ class ReadFAMUS():
     # needs to be skimmed and to apply stellarator symmetry
     #x0,y0,z0,nx,ny,nz,u,v,w, H,L,M = source
 
-        self.skim() 
         self.halfperiod_to_fulltorus()
 
         x = self.X
@@ -463,6 +462,34 @@ class ReadFAMUS():
         return source
 
 
+    def export_ficus_source_3D(self):
+    # assumes stellarator symmetry has already been applied 
+
+        self.skim() 
+
+        x = self.X
+        y = self.Y 
+        z = self.Z
+
+        xyz = np.transpose([x,y,z])
+        nhat = xyz_to_n(xyz)
+        u,v,w = nhat.T #* self.pho
+
+        zhat = np.array([0,0,1])
+        n2hat = np.cross( zhat[np.newaxis,:], nhat)
+
+        import pdb
+        pdb.set_trace()
+
+        ndip = len(x)
+        arr  = np.ones(ndip)
+        L = 0.0254/4 * arr
+        H = 0.0254/16 * arr
+        M = self.M / (L*L*H)
+
+        # the second set of (u,v,w) are dummy varibles that will be ignored
+        source = np.transpose([x,y,z,u,v,w,arr,arr,arr,H,L,M])
+        return source
 ### end class function
 def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05, 
                     add_symmetry=False, flip_sign=False, skip_switch=False, filter_blank=0,

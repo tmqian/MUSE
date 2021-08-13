@@ -15,7 +15,7 @@ import time
 from jax.config import config
 config.update("jax_enable_x64", True)
 
-def B_3d_local(R,magnet, internal=False):
+def B_3d_local(R,magnet, internal=True):
 
     # a = L/2, b = W/2, c = H/2
     a,b,c,M = magnet
