@@ -8,7 +8,10 @@ import os
     writes the appropriate XFIELDLINES input file
     and runs the job on slurm
 
-    Updated 5 July 2021
+    Made compatible with magnet-to-poincare.py
+    Substituted sample input file with a file read in. Changed the tag for the output files
+
+    Updated 11 August 2021
 '''
 
 ### Read
@@ -24,8 +27,9 @@ mgrid.read_netCDF(f_mgrid)
 
 
 ### Edit
-f_sample = 'input.101-test'
-with open(f_sample) as f:
+#f_sample = 'input.101-test'
+fname = sys.argv[2]
+with open(fname) as f:
     sample_input = f.readlines()
 
 # find line where FIELDLINES input starts
@@ -61,13 +65,14 @@ def write_input(f_new):
 
         print('  writing {:40}: {}'.format(f_new, value ) )
 
-tag = f_mgrid[:-3]
+vmec_tag = fname[-6:]
+tag = f_mgrid[:-3] + vmec_tag
 fout = 'input.' + tag
 write_input(fout)
 
 
 ### Run
 f_log = 'log.' + tag
-os.system('srun -t 1:00:00 xfieldlines -vmec {} -mgrid {} -vac -auto > {} &'.format(tag,f_mgrid,f_log) )
+os.system('srun -n 1 -t 1:00:00 --mem-per-cpu=8GB xfieldlines -vmec {} -mgrid {} -vac -auto > {} &'.format(tag,f_mgrid,f_log) )
 print(' saving log to:', f_log)
 
