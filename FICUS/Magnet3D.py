@@ -416,14 +416,91 @@ class Magnet_3D_gen():
     
         t_north = r0 + uv_grid + z_height 
         t_south = r0 + uv_grid - z_height 
-    
+     
         # shape into (M,8,3)
         targets = np.concatenate([t_north, t_south],axis=0)
         t2 = np.transpose(targets, axes=[1,0,2])
         t3 = np.reshape(t2, (2*N*N*M,3))
         return t3
 
+    # export 3M magnets
+    def export_m3d(self):
+        '''
+        exports source array for CIFTJA force calculation
+        [x0,y0,z0,nx,ny,nz,ux,uy,uz, H,L,M]
+        '''
 
+        x0,y0,z0 = self.r0.T
+        nx,ny,nz = self.n1.T
+        ux,uy,uz = self.n2.T
+        mx,my,mz = self.m3.T
+        M = self.M
+        H = self.H
+        L = self.L
+        W = self.W
+        
+        # x0,y0,z0, nx,ny,nz, ux,uy,uz, H,L,W, M, mx,my,mz = source # new convention
+        source = np.array([x0,y0,z0,nx,ny,nz,ux,uy,uz,H,L,W,M, mx,my,mz]).T
+        return source
+
+    # writes magnets in vector form
+    def write_magnets(self, fout):
+
+        data = self.export_m3d()
+        
+        print('Preparing to write file')
+        with open(fout,'w') as f:
+        
+            f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], W [m], M [A/m], mx, my, mz \n')
+            #f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], M [A/m], mx, my, mz \n')
+            for line in data:
+                
+                out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(*line)
+                print(out,file=f)
+        print('  Wrote to %s' % fout)
+        
+    def write_magnets_block(self, fout):
+        '''
+           converts the 16 vector form (physics) into 24 block form (engineering)
+        '''
+        R = self.r0
+        
+        z = self.n1
+        x = self.n2
+        y = self.n3
+        
+        h = self.H/2
+        l = self.L/2
+        w = self.W/2
+        
+        zh = z*h[:,np.newaxis]
+        xl = x*l[:,np.newaxis]
+        yw = y*w[:,np.newaxis]
+        
+        # assume C-shape
+        n1 = R + zh + xl + yw
+        n2 = R + zh - xl + yw
+        n3 = R + zh - xl - yw
+        n4 = R + zh + xl - yw
+        
+        s1 = R - zh + xl + yw
+        s2 = R - zh - xl + yw
+        s3 = R - zh - xl - yw
+        s4 = R - zh + xl - yw
+        
+        # write
+        data = np.array([ *n1.T, *n2.T, *n3.T, *n4.T, *s1.T, *s2.T, *s3.T, *s4.T]).T
+        #print(data.shape)
+        
+        #fout = 'block_'+f_vector
+        with open(fout,'w') as f:
+        
+            head = 'n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z, n4x, n4y, n4z, s1x, s1y, s1z, s2x, s2y, s2z, s3x, s3y, s3z, s4x, s4y, s4z'
+            print(head, file=f)
+            for line in data:
+                out = '{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f}'.format(*line)
+                print(out, file=f)
+        print('  Wrote to %s' % fout)
 
 ### misc geometry functions
 #   copied from MagnetReader.py 8/23
