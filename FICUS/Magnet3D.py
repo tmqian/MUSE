@@ -495,7 +495,10 @@ class Magnet_3D_gen():
         #fout = 'block_'+f_vector
         with open(fout,'w') as f:
         
-            head = 'n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z, n4x, n4y, n4z, s1x, s1y, s1z, s2x, s2y, s2z, s3x, s3y, s3z, s4x, s4y, s4z'
+       #    head = 'n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z, n4x, n4y, n4z, s1x, s1y, s1z, s2x, s2y, s2z, s3x, s3y, s3z, s4x, s4y, s4z'
+
+            Nmag = len(data)
+            head = '%i 1.16e6 2 4 4 .100 / nPM, Hsat, nxPM, nyPM, nzPM, sPM' % Nmag # for Art's fortran code
             print(head, file=f)
             for line in data:
                 out = '{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f},{:.8f}, {:.8f}, {:.8f}, {:.8f}'.format(*line)
