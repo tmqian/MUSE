@@ -4,15 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 '''
-  usage: python plot_stellopt.py <file_tag> <(opt)boundary.plasma>
+  usage: python vmec-3.py <file_tag> 
 
   Looking for
      wout_fname.nc
-     boozmn_fname.nc
-     neo_out.fname
-
-  Give optional 2nd file, if you want to draw a target boundary on the vmec equilibrium.
-  This takes FOCUS .plasma format
 
   Updated September 28, 2021
 '''
@@ -25,7 +20,7 @@ vd = sr.readVMEC(f_vmec)
 
 N = 50
 nfp = vd.nfp
-s = -11
+s = -1
 plt.figure()
 for phi in [0, 1/nfp/2, 1/nfp]:
     R,Z = vd.get_surface(N,phi=phi*np.pi,s=s)
