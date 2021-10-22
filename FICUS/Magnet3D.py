@@ -91,6 +91,11 @@ class Magnet_3D():
 
         #self.xhat, self.yhat = self.compute_xy()
 
+        # compute dipole moment
+        self.volume = self.H * self.L**2
+        self.moment = self.volume * self.M
+        self.dipole = self.nvec * self.moment[:, np.newaxis]
+
     def compute_lengths(self):
         
         n12 = np.linalg.norm(self.n1 - self.n2, axis=1)
