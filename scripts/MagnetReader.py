@@ -495,6 +495,9 @@ class ReadFAMUS():
         # the second set of (u,v,w) are dummy varibles that will be ignored
         source = np.transpose([x,y,z,u,v,w,arr,arr,arr,H,L,M])
         return source
+
+
+
 ### end class function
 def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05, 
                     add_symmetry=False, flip_sign=False, skip_switch=False, filter_blank=0,
@@ -686,6 +689,7 @@ class Magnet_3D():
         print('Data size:', data.shape)
         self.data = data
         self.N_magnets = len(data)
+        self.fname = fname
 
         # unpack data
         n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z, n4x, n4y, n4z, \
@@ -969,6 +973,43 @@ class Magnet_3D():
 #            print(out,file=f)
 #    print('  Wrote to %s' % fout)
 
+    # this function converts .block format into FAMUS input
+    def export_famus_PM(self):
+
+        print('Warning: this subroutine converts FICUS .block format (8 corners) to a FAMUS ideal dipole.')
+        print('  information could be lost from concatenating slices.')
+        print('  A more robust algorithm that recreates segmented slices in a tower can be written in the future.')
+        
+        # load data
+        x0,y0,z0 = self.com.T
+        nx,ny,nz = self.nvec.T
+        H = self.H
+        L = self.L
+        M = self.M
+
+        # compute data
+        V = H*L*L
+        m = M*V
+        phi = np.arctan2(ny,nx)
+        nr = np.sqrt( nx**2 + ny**2)
+        theta = np.arctan2(nz,nr)
+
+        # supplementary data
+        N_mag = self.N_magnets
+        PM_name   = np.arange(N_mag)
+
+        # write
+        fout = 'famus_' + self.fname
+        print(' Writing to', fout)
+        with open(fout,'w') as f:
+            h1   = '# Total number of coils,  momentq'
+            h2   = '# coiltype, symmetry,  coilname,  ox,  oy,  oz,  Ic,  M_0,  pho,  Lc,  mp,  mt'
+            print(h1, file=f)
+            print('  {}   {}'.format(N_mag, 1) , file=f)
+            print(h2, file=f)
+            for j in np.arange(N_mag):
+                line = '{:6d}, {:6d}, pm{:07d}, {:6e}, {:6e}, {:6e}, {}, {:6e}, {}, {}, {:6e}, {:6e}'.format(2, 2, PM_name[j], x0[j], y0[j], z0[j], 0, m[j], 1, 0, phi[j], theta[j])
+                print(line, file=f)
 
 # this class reads a 3D magnet specified by 15 variables
 class Magnet_3D_gen():
