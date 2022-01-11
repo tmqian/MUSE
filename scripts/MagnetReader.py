@@ -3,6 +3,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mc
 
 try:
+    from mayavi import mlab
+except:
+    print('  note: mayavi unavailable')
+
+try:
     from coilpy import *
 except:
     print('  note: coilpy package unavailable')
@@ -548,7 +553,7 @@ def mayavi_plot_rho(self,scale=0.00635, show_vector=False, vec_scale=0.05,
 def mayavi_full_torus(self):
     
     self.skim()
-    x,y,z,p = stellarator_symmetry(self.ox,self.oy,self.oz,self.pho)
+    x,y,z,p = stellarator_symmetry(self.X,self.Y,self.Z,self.pho)
     
     def make_torus():
         # I want to plot a solid torus, representing the VV, for the filter view
@@ -568,7 +573,7 @@ def mayavi_full_torus(self):
         
         return X,Y,Z
     
-    X,Y,X = make_torus()
+    X,Y,Z = make_torus()
     mlab.mesh(X,Y,Z, color=(1,1,1))
    
     mlab.points3d(x,y,z,p,scale_mode='none',scale_factor=0.005)
@@ -947,6 +952,22 @@ class Magnet_3D():
     
         X,Y,Z = np.array([ self.n1,self.n2,self.n3,self.n4, self.s1,self.s2,self.s3,self.s4]).T
         return X,Y,Z, triangle_array, color_array
+
+    # needs a write function
+#    def write_block24(self, fout):
+#
+#    #data = self.export_m3d() # should have options for writing 24, and writing 15
+#
+#    print('Preparing to write file')
+#    with open(fout,'w') as f:
+#
+#        #f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], W [m], M [A/m], mx, my, mz \n')
+#        #f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], M [A/m], mx, my, mz \n')
+#        for line in data:
+#
+#            out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(*line)
+#            print(out,file=f)
+#    print('  Wrote to %s' % fout)
 
 
 # this class reads a 3D magnet specified by 15 variables
