@@ -437,6 +437,7 @@ class ReadFAMUS():
         
         return u + np.sum(rings[:v]) + self.N_towers*(w-1)
 
+    # redundant can be deleted
     def export_ficus_source(self):
     # needs to be skimmed and to apply stellarator symmetry
     #x0,y0,z0,nx,ny,nz,u,v,w, H,L,M = source
@@ -465,21 +466,24 @@ class ReadFAMUS():
     def export_ficus_source_3D(self):
     # assumes stellarator symmetry has already been applied 
 
+        # then remove blank magnets
         self.skim() 
 
+        # get positions
         x = self.X
         y = self.Y 
         z = self.Z
 
+        # get n1 components, which are in magnetization direction
         xyz = np.transpose([x,y,z])
         nhat = xyz_to_n(xyz)
         u,v,w = nhat.T #* self.pho
 
+        # get n2 components, which are binormal (normal to a rectangular face)
         zhat = np.array([0,0,1])
-        n2hat = np.cross( zhat[np.newaxis,:], nhat)
-
-        import pdb
-        pdb.set_trace()
+        n2   = np.cross( zhat[np.newaxis,:], nhat)
+        n2hat = n2 / np.linalg.norm(n2,axis=1)[:,np.newaxis]
+        a,b,c = n2hat.T
 
         ndip = len(x)
         arr  = np.ones(ndip)
@@ -488,9 +492,57 @@ class ReadFAMUS():
         M = self.M / (L*L*H)
 
         # the second set of (u,v,w) are dummy varibles that will be ignored
-        source = np.transpose([x,y,z,u,v,w,arr,arr,arr,H,L,M])
+        #source = np.transpose([x,y,z,u,v,w,arr,arr,arr,H,L,M])
+        source = np.transpose([x,y,z,u,v,w,a,b,c,H,L,M])
         return source
 
+    def write_ficus_block(self):
+
+        # relfect stellarator symmetry, then remove blank magnets
+        self.halfperiod_to_fulltorus()
+        self.skim() 
+
+        # get positions and orientation
+        x = self.X
+        y = self.Y 
+        z = self.Z
+        xyz = np.transpose([x,y,z])
+        nhat = xyz_to_n(xyz)
+        
+        half_thickness = 0.0254/16/2
+        side_length     = 0.0254/4
+        center_1 = xyz + nhat*half_thickness
+        center_0 = xyz - nhat*half_thickness
+        sign     = self.pho
+
+        # get corners
+        sq_arr = []
+        N_slice = len(xyz)
+        for j in np.arange(N_slice):
+
+            c1 = center_1[j]
+            c0 = center_0[j]
+            n1 = nhat[j]
+            sg = sign[j]
+
+            # export 8 points (24 numbers)
+            if (sg > 0):
+                north = rvec_to_sq(c1,n1,s=side_length)
+                south = rvec_to_sq(c0,n1,s=side_length)
+            else:
+                north = rvec_to_sq(c0,n1,s=side_length)
+                south = rvec_to_sq(c1,n1,s=side_length)
+            
+            sq_arr.append( [*north, *south] )
+
+        # write
+        fout = self.fname +'_slice_block.csv'
+        with open(fout,'w') as f:
+            header = 'n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z, n4x, n4y, n4z, s1x, s1y, s1z, s2x, s2y, s2z, s3x, s3y, s3z, s4x, s4y, s4z'
+            print(header, file=f)
+            for line in sq_arr:
+                print('  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f}'.format(*line), file=f)
+        print('wrote to', fout)
 
 
 ### end class function
@@ -592,7 +644,7 @@ def stellarator_symmetry(x, y, z, m):
     
     return X, Y, Z, M
 
-def shift_name(coilname, N):
+def shift_name(coilname, N, int_start=11):
 
     shift = len(coilname) * N
 
@@ -601,8 +653,8 @@ def shift_name(coilname, N):
 
         # magic index 11, is the char in name string which I wish to replace
 
-        idx = int(label[11:])
-        new_label = label[:11] + '%.6i' % (idx + shift)
+        idx = int(label[int_start:])
+        new_label = label[:int_start] + '%.6i' % (idx + shift)
         names.append(new_label)
 
     return names
@@ -664,6 +716,79 @@ def xyz_to_n(xyz,R0=0.3048):
 
     return np.array(nhat)
 
+
+def rvec_to_sq(R,nhat,s=0.1):
+    
+    x,y,z = R
+    u = np.arctan2(y,x)
+
+    uvec = np.array([-np.sin(u), np.cos(u), 0])
+    vvec = np.cross(nhat,uvec)
+    
+    h = s/2 # half the side-length
+    v1 = R + h*uvec + h*vvec
+    v2 = R - h*uvec + h*vvec
+    v3 = R - h*uvec - h*vvec
+    v4 = R + h*uvec - h*vvec
+
+    return np.array( [*v1,*v2,*v3,*v4] )
+
+
+# for converting floating Heights into integers
+def round_int(arr):
+    return np.array( arr+0.1, int)
+
+
+# takes a 3D block file and prepares FAMUS ideal dipole slices
+def prep_famus(self):
+    
+    ### convert to slice
+    inch16 = 0.0254/16
+    a   = inch16
+    vol = a**3 * 16 # assume volume is 1/4 x 1/4 x 1/16
+    
+    #
+    height = round_int( self.H / inch16 )
+
+    xyz = []
+    uvw = []
+    mdip = []
+
+    for j in np.arange( len(self.r0) ):
+
+        r = self.r0[j] # com
+        n = self.n1[j] # magnetization vector
+        h = height[j] # height
+        m = self.M[j] * vol # note, this in general varies
+
+        base = r - n*(h-1)*a/2 
+        for k in np.arange(h):
+
+            r_slice = base + k*a*n
+            xyz.append(r_slice)
+            uvw.append(n)
+            mdip.append(m)
+
+    xyz = np.array(xyz)
+    uvw = np.array(uvw)
+    mdip = np.array(mdip)
+
+    return xyz, uvw, mdip
+
+
+def uvw_to_pt(uvw):
+    # converts 3D magnet orientation to 2D solid angle
+    # u is toroidal angle (-pi,pi)
+    # v is poloidal angle (0, pi) coming down from +z-axis
+
+    u,v,w = uvw.T
+
+    # unpack
+    p = np.arctan2(v,u)
+    r = np.sqrt( u*u + v*v ) 
+ 
+    t = np.pi/2 - np.arctan2(w,r) 
+    return p,t
 
 ### new file format
 '''
@@ -1133,3 +1258,50 @@ class Magnet_3D_gen():
                 print(out,file=f)
         print('  Wrote to %s' % fout)
         
+
+    # writes identical dipole slices
+    def write_famus(self, fname, q=1, ic=1, lc=0, symm=0, _slice=True):
+       
+        if (_slice):
+            xyz, uvw, Mdip = prep_famus(self)
+
+        else: # coarse grain, only one dipole per block
+            xyz = self.r0
+            uvw = self.n1
+            Mdip = self.M * self.H * self.L**2
+        
+        ### write file
+        N = len(xyz)
+        
+        X,Y,Z = xyz.T
+        MP,MT = uvw_to_pt(uvw) 
+        
+        Ic  = ic*np.ones(N)
+        Lc  = lc*np.ones(N)   
+        pho = np.ones(N) 
+        
+        type_arr = 2*np.ones(N)
+        symm_arr = symm*np.ones(N)
+        name_arr = ['pm%08i' % j for j in np.arange(N)]
+        
+        outdata = np.transpose([type_arr, symm_arr, name_arr,
+                                X, Y, Z,
+                                Ic, Mdip, pho,
+                                Lc, MP, MT])
+            
+        h1 = '# Total number of coils,  momentq \n'
+        h2 = '     {}     {}\n'.format(N,q) # removed comma to match FAMUS
+        h3 = '# coiltype, symmetry,  coilname,  ox,  oy,  oz,  Ic,  M_0,  pho,  Lc,  mp,  mt \n'
+        
+        with open(fname,'w') as f:
+            
+            f.write(h1)
+            f.write(h2)
+            f.write(h3)
+            
+            for j in np.arange(N):
+                line = '{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \n'.format(*outdata[j])
+                f.write(line)
+                
+            print('Wrote %i magnets' % N)
+            print('  new file:', fname)
