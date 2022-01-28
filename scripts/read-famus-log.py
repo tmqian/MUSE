@@ -41,14 +41,17 @@ def read_data(fname):
 
     # optional
 
-    chi, dE, bnorm, pmsum, dpbin, pmvol = np.transpose(data)
-    print(' {:<50}, {:4d}, {:e}, {:e}, {:e}'.format(fname, nsteps, bnorm[-1], dpbin[-1], pmvol[-1] ) )
+    #chi, dE, bnorm, pmsum, dpbin, pmvol = np.transpose(data)
+    #print(' {:<50}, {:4d}, {:e}, {:e}, {:e}'.format(fname, nsteps, bnorm[-1], dpbin[-1], pmvol[-1] ) )
+    chi, dE, bnorm, pmsum, dpbin, pmvol, resbn = np.transpose(data) # new famus version
+    print(' {:<50}, {:4d}, {:e}, {:e}, {:e}'.format(fname, nsteps, bnorm[-1], dpbin[-1], pmvol[-1], resbn[-1] ) )
     return data
 
 
 def plot_data(data,fname):
     
-    chi, dE, bnorm, pmsum, dpbin, pmvol = np.transpose(data)
+    chi, dE, bnorm, pmsum, dpbin, pmvol, resbn = np.transpose(data) # new famus version
+    #chi, dE, bnorm, pmsum, dpbin, pmvol = np.transpose(data)
     
     #global fname
     tag = fname.split('/')[-1]
