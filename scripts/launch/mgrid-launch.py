@@ -7,8 +7,12 @@
 
    The table lives in batch_name.setup.
    Read sample.input and b-sample.sh 
+        
+   another sample:
+       usage: python famus-launch.py batch.setup -f alt-opt.input -b alt-opt.sh
+       usage: python scripts/launch/mgrid-launch.py *focus
 
-   Updated: 19 Feb 2021
+   Updated: 12 October 2021
 '''
 
 import sys

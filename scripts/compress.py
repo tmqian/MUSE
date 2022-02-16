@@ -60,6 +60,11 @@ def compress(tower):
 
 
 def compute_base(Ic):
+    # find the spaces. 
+    # the compress script will respect existing spaces, where a space is a magnet tower that is shorter than the cavity.
+    #    e.g. 0, 0, 1, 1, 0.5, 0.6
+    # this script will compress into
+    #         0, 0, 1, 1, 1, 0.1, 0
 
     mat = np.reshape(Pho,(N_slices,N_towers))
     isEmpty = np.array( np.sum(mat,axis=1) == 0 )

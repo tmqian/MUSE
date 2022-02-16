@@ -29,7 +29,9 @@ for f in f_arr:
     print('reading booz file: ', f_booz)
     bd = sr.readBOOZ(f_booz)
 
-    plt.plot(bd.S,'.-', label=f)
+    ax = np.linspace(0,1,len(bd.S))
+
+    plt.plot(ax, bd.S,'.-', label=f)
     booz_arr.append( bd.S )
 
 
@@ -46,7 +48,8 @@ for f in f_arr:
     print('reading neo  file: ', f_neo)
 #    sr.plot_neo(f_neo,ref=False)
     nd = sr.readNEO(f_neo)
-    plt.plot(nd.eps_eff, '.-', label=f)
+    ax = np.linspace(0,1,nd.ns)
+    plt.plot(ax,nd.eps_eff, '.-', label=f)
     neo_arr.append( nd.eps_eff )
 
 plt.yscale('log')

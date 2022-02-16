@@ -32,7 +32,8 @@ for phi in [0, 1/nfp/2, 1/nfp]:
 
 plt.title(fname)
 
-#sr.plot_circle()
+#sr.plot_circle( R=vd.Rmajor, a=vd.Aminor )
+sr.plot_circle( R=0.305, a=0.076 )
 #vd.plot_vmec_3( phi=[0,np.pi/4, np.pi/2] )  # default setting for NFP=2
 plt.legend()
 plt.axis('square')

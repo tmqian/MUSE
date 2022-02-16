@@ -22,7 +22,8 @@
 
 
 #module load mod_focus
-module use ~caoxiang/Modules
+module use ~caoxiang/module
+#module use ~caoxiang/Modules expired oct 2021
 module load focus/dipole
 #module load openmpi
 

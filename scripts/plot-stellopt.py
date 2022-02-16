@@ -16,6 +16,8 @@ import numpy as np
   This takes FOCUS .plasma format
 '''
 fname = sys.argv[1]
+s = 23  # plasma surface
+_SAVE = False
 
 f_vmec = 'wout_'   + fname +'.nc'
 f_booz = 'boozmn_' + fname +'.nc'
@@ -34,29 +36,32 @@ except:
 vd.plot_vmec_3()
 #vd.plot_vmec_3( phi=[0,np.pi/4, np.pi/2] )  # default setting for NFP=2
 plt.draw()
-plt.savefig('vmec_%s.png' % fname)
+if (_SAVE):
+    plt.savefig('vmec_%s.png' % fname)
 
 print('  plotting iota profile')
 plt.figure()
 vd.plot_iota(fig=False,ref=True)
 plt.draw()
-plt.savefig('iota_%s.png' % fname)
+if (_SAVE):
+    plt.savefig('iota_%s.png' % fname)
 
 print('reading neo  file: ', f_neo)
 plt.figure()
 sr.plot_neo(f_neo,ref=True)
 plt.draw()
-plt.savefig('neo_%s.png' % fname)
+if (_SAVE):
+    plt.savefig('neo_%s.png' % fname)
 
 print('reading booz file: ', f_booz)
 bd = sr.readBOOZ(f_booz)
-s = 23
 plt.figure(figsize=(9,4))
 plt.subplot(1,2,1)
 bd.plot_Booz_Contour(s_idx=s,plot_iota=True,fig=False)
 plt.subplot(1,2,2)
 bd.plot_B_well(s_idx=s,fig=False)
 plt.draw()
-plt.savefig('booz_%s.png' % fname)
+if (_SAVE):
+    plt.savefig('booz_%s.png' % fname)
 
 plt.show()

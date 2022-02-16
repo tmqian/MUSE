@@ -409,7 +409,7 @@ class ReadFAMUS():
         self.rings = np.array(rings)
         return np.array(rings)
               
-                    
+    # is this used?                
     def load_dots(self):
         
         rings = self.load_rings()
@@ -502,6 +502,7 @@ class ReadFAMUS():
         return source
 
     def write_ficus_block(self):
+    # 24-point engineering form, from famus slices
 
         # relfect stellarator symmetry, then remove blank magnets
         self.halfperiod_to_fulltorus()
@@ -548,6 +549,43 @@ class ReadFAMUS():
             for line in sq_arr:
                 print('  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f},  {:6f}'.format(*line), file=f)
         print('wrote to', fout)
+
+
+    def write_ficus_3D(self):
+    # 16-point physics form, from famus slices
+
+        # relfect stellarator symmetry, then remove blank magnets
+        self.halfperiod_to_fulltorus()
+        self.skim() 
+
+        # get positions and orientation
+        x = self.X
+        y = self.Y 
+        z = self.Z
+        xyz = np.transpose([x,y,z])
+
+        # how to get H?
+        half_thickness = 0.0254/16/2
+        side_length     = 0.0254/4
+    
+        u = np.arctan2(y,x)
+        nhat = xyz_to_n(xyz)
+        uvec = np.array([-np.sin(u), np.cos(u), 0])
+        vvec = np.cross(nhat,uvec)
+        
+        # write
+
+        ### continue from here
+        fout = self.fname +'_slice_3D.csv'
+        with open(fout,'w') as f:
+        
+            f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], W [m], M [A/m], mx, my, mz \n')
+            #f.write('X [m], Y[m], Z[m], n1x, n1y, n1z, n2x, n2y, n2z, H [m], L [m], M [A/m], mx, my, mz \n')
+            for line in data:
+                
+                out = '{:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}, {:.6e}'.format(*line)
+                print(out,file=f)
+        print('  Wrote to', fout)
 
 
 ### end class function
@@ -722,6 +760,8 @@ def xyz_to_n(xyz,R0=0.3048):
     return np.array(nhat)
 
 
+# takes position vector, and normal vector, and side-length
+#     constructs four corners of a square
 def rvec_to_sq(R,nhat,s=0.1):
     
     x,y,z = R
@@ -888,6 +928,7 @@ class Magnet_3D():
         return L
     
     def compute_phat(self):
+        # this is not normalized!
         
         x,y,z = self.com.T
         phi = np.array([-y,x,z*0]).T

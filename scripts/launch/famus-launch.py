@@ -16,7 +16,7 @@ import numpy as np
 
 f_sample = 'sample.input'
 b_sample = 'b-sample.sh'
-N_shell  = 1
+N_shell  = 10
 
 ### load (optional) user input
 def load_option(args):

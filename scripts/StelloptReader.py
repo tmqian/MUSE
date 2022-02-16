@@ -62,8 +62,26 @@ def plot_circle(R=0.3048,a=0.0762,N=100):
 '''
 NEO
 '''
-# maybe I should upgrade this into a class
+
+class readNEO():
     
+    def __init__(self,fname):
+
+        # read
+        with open(fname) as f:
+            datain = f.readlines()
+
+        data = np.array([line.strip().split() for line in datain],float)
+        surf, eps_eff, reff, iot, b_ref, r_ref = np.transpose(data)
+
+        self.surf = surf
+        self.eps_eff = eps_eff # actually this data is eps_eff^3/2
+
+        self.ns = len(surf)
+
+
+# old for legacy scripts
+# maybe I should upgrade this into a class
 def read_neo(f):
     
     with open(f) as h:
@@ -159,8 +177,41 @@ class readBOOZ():
         self.xn    = get(f,'ixn_b')
         self.bmnc  = get(f,'bmnc_b')
         self.iota_b  = get(f,'iota_b')
+
+        self.S = self.calc_S()
         
-    def plot_Booz_Contour(self, s_idx=1, fig=True, plot_iota=False, cmap='plasma'):
+
+#    def calc_S(self):
+#      
+#        # get asymetric modes (assumes axisymmetry!)
+#        arg_asym = np.argwhere(self.xn != 0)[:,0]
+#        
+#        # get background mode for normalization
+#        b00 = self.bmnc[:,0]  # does this also assume the backgroud mode is axisymetric?
+#        bmn_norm = self.bmnc / b00[:,np.newaxis]
+#
+#        # comput rms
+#        #S = np.sqrt(np.sum(bmn_norm[:,arg_asym]**2, axis=1))
+#        S = np.linalg.norm(bmn_norm[:,arg_asym], axis=1)
+#        return S
+
+    # calculate Landreman Martin metric for quasisymmetry on each surface
+    def calc_S(self, N=0,M=1):
+      
+        # get asymetric modes 
+        #symm     =  np.array(M*self.xn != N*self.xm,int)
+        arg_asym = np.argwhere( M*self.xn != N*self.xm )[:,0]
+        
+        # get background mode for normalization
+        b00 = self.bmnc[:,0]  # b00 background for EACH surface
+        bmn_norm = self.bmnc / b00[:,np.newaxis]
+        #bmn_norm = self.bmnc / np.max(self.bmnc)
+
+        # comput rms
+        S = np.linalg.norm(bmn_norm[:,arg_asym], axis=1)
+        return S
+         
+    def plot_Booz_Contour(self, s_idx=1, fig=True, plot_iota=False, cmap='plasma',tag_fname=True):
         
         # grid
         tax = np.linspace(0, 2*np.pi, self.Nt, endpoint=False)
@@ -182,7 +233,8 @@ class readBOOZ():
         plt.colorbar()#(label='|B| [T]')
         #plt.clim(.12,.16)
 
-        plt.plot([],[],'w.',label=self.tag)
+        if (tag_fname):
+            plt.plot([],[],'w.',label=self.tag)
 
         if (plot_iota):
             iota = self.iota_b[ self.slist[s_idx] ]
@@ -342,12 +394,16 @@ class readVMEC():
         self.a = a
         
         f = self.f
+        self.ns = get(f,'ns')
         self.xm = get(f,'xm')
         self.xn = get(f,'xn')
         self.rmnc = get(f,'rmnc')
         self.zmns = get(f,'zmns')
         self.iota = get(f,'iotaf')
         self.nfp = get(f,'nfp')
+
+        self.Aminor = get(f,'Aminor_p')
+        self.Rmajor = get(f,'Rmajor_p')
 
         self.plasma_file = False
         

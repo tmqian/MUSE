@@ -74,6 +74,11 @@ nfp = get(f,'Nfp')
 n_theta = get(f,'Nteta')
 n_zeta = get(f,'Nzeta')
 
+try:
+    resbn = get(f,'resbn')
+    has_resbn = True
+except:
+    has_resbn = False
 
 # In[8]:
 
@@ -92,6 +97,9 @@ for i in np.arange(ns):
     plt.plot(r[:,i], z[:,i],'.', color=colors[i],markersize=1)
 
 plt.plot(r0,z0,'.',color='gray',label=r'$\chi^2_B$ = %.2e' % bnormal)
+
+if has_resbn:
+    plt.plot(r0,z0,'.',color='gray',label=r'$resbn$ = %.2e' % resbn)
 
 plt.axis('square')
 

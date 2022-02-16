@@ -29,7 +29,7 @@ import matplotlib.cm as cm
 ### USER INPUT ###
 
 _save = True
-_pipe = None
+_pipe = 'X'
 _legend = 'L'
 
 ###################
