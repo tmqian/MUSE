@@ -40,7 +40,7 @@ def compress(tower):
 
         while ( abs(tower[k]) < 0.1):
             k += 1
-            # rest if no bubbles found
+            # reset if no bubbles found
             if (k == N_slices):
                 k=0
                 break

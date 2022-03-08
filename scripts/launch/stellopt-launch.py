@@ -165,7 +165,8 @@ for j in np.arange( len(files) ):
     #write_batch(new_batch, handle)
     #fsh.write('sbatch %s\n' % new_batch)
 
-    cmd = 'xstelloptv2 input.{} > stellopt-{}.log &'.format(handle,handle)
+    cmd = 'srun -n 2 -t 2:00:00 xstelloptv2 input.{} > stellopt-{}.log &'.format(handle,handle) # for stellar
+    #cmd = 'xstelloptv2 input.{} > stellopt-{}.log &'.format(handle,handle)
     fsh.write('{}\n'.format(cmd) )
 
 print(' exporting script: {}'.format(f_script) )
