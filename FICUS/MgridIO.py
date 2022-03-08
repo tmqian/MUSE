@@ -38,6 +38,7 @@ class Read_MGRID():
         print('Initialized mgrid file: (nr,nphi,nz,nfp) = ({}, {}, {}, {})'.format(nr,nphi,nz,nfp))
 
     # takes 3D vector field (N,3) as well as coil group label (up to 30 char)
+    #    input is x,y,z
     def add_field(self,B,name='default'):
 
         
@@ -69,6 +70,23 @@ class Read_MGRID():
         self.cur_labels.append(label)
         self.n_ext_cur = self.n_ext_cur + 1
 
+    def add_field_cylindrical(self,br,bp,bz,name='default'):
+
+        
+        # structure Bfield data into arrays (phi,z,r) arrays
+
+        self.br_arr.append( br )
+        self.bz_arr.append( bz )
+        self.bp_arr.append( bp )
+
+        # add coil label
+        if (name == 'default'):
+            label = pad_string('magnet_%i' % self.n_ext_cur)
+        else:
+            label = pad_string(name)
+        self.cur_labels.append(label)
+        self.n_ext_cur = self.n_ext_cur + 1
+
 
     def read_netCDF(self,fname):
         
@@ -89,10 +107,17 @@ class Read_MGRID():
 
         self.cur_labels = get(f, 'coil_group')
 
-        # implement read fields in for loop
-        #self.br_arr = [] 
-        #self.bz_arr = [] 
-        #self.bp_arr = [] 
+
+        ### read coil groups
+        def unpack(binary_array):
+            return "".join( np.char.decode(binary_array) ).strip()
+        self.nextcur = int(f.variables['nextcur'][:])
+        self.coil_names = [ unpack( self.cur_labels[j] ) for j in range(self.nextcur) ] 
+
+        ### read raw coil current
+        self.mode = f.variables['mgrid_mode'][:][0].decode()
+        self.raw_coil_current = np.array(f.variables['raw_coil_cur'][:])
+
 
         print(' overwriting  mgrid coordinates: (nr,nphi,nz,nfp) = ({}, {}, {}, {})'.format(self.nr,self.nphi,self.nz,self.nfp))
 
@@ -258,8 +283,8 @@ class Read_MGRID():
         var_zmax[:] = self.zmax
         
         var_coil_group[:] = self.cur_labels
-        #var_coil_group[:] = self.curlabel
-        var_mgrid_mode[:] = 'R' # R - Raw, S - scaled, N - none (old version)
+        var_mgrid_mode[:] = 'N' # R - Raw, S - scaled, N - none (old version)
+        #var_mgrid_mode[:] = 'R' # R - Raw, S - scaled, N - none (old version)
         var_raw_coil_cur[:] = np.ones(self.n_ext_cur)
         
         
@@ -307,35 +332,23 @@ class Read_MGRID():
                     xyz.append([x,y,z])
         return np.array(xyz)
 
-    # older function
-    def init_targets0(self, nr=21,nz=21,nphi=36,nfp=2,rmin=0.20,rmax=0.40,zmin=-0.10,zmax=0.10):
 
-        self.nr = nr
-        self.nz = nz
-        self.nphi = nphi
-        self.nfp = nfp
+    def init_target_slices(self):
 
-        self.rmin = rmin
-        self.rmax = rmax
-        self.zmin = zmin
-        self.zmax = zmax
-
-        self.nextcur = 1
-        self.curlabel = '        FICUS-PM              ' 
-        #               '        FAMUS-coils           '
-
-        raxis = np.linspace(rmin,rmax,nr)
-        zaxis = np.linspace(zmin,zmax,nz)
+        raxis = np.linspace(self.rmin,self.rmax,self.nr)
+        zaxis = np.linspace(self.zmin,self.zmax,self.nz)
         
-        phi   = np.linspace(0,2*np.pi/nfp,nphi)
+        phi   = np.linspace(0,2*np.pi/self.nfp,self.nphi)
         
         xyz = []
-        for r in raxis:
+        for p in phi:
+            s = []
             for z in zaxis:
-                for p in phi:
+                for r in raxis:
                     x = r*np.cos(p)
                     y = r*np.sin(p)
-                    xyz.append([x,y,z])
+                    s.append([x,y,z])
+            xyz.append(s)
         return np.array(xyz)
 
 

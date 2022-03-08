@@ -73,7 +73,7 @@ class FieldLine():
         self.field_plot(0, _legend=True, trim=trim, skip_label=skip)
 
         plt.subplot(1,2,2)
-        self.field_plot(1 ,trim=trim,skip=skip)
+        self.field_plot(1 ,trim=trim,skip_label=skip)
 
         plt.suptitle(self.fname)
 
