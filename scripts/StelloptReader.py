@@ -386,6 +386,7 @@ VMEC
     
 class readVMEC():
     def __init__(self,fname,R=0.3048,a=0.0762):
+
         self.fname = fname
         self.f = Dataset(fname, mode='r')
         self.tag = fname.split('/')[-1][5:-3]
@@ -400,10 +401,13 @@ class readVMEC():
         self.rmnc = get(f,'rmnc')
         self.zmns = get(f,'zmns')
         self.iota = get(f,'iotaf')
+        self.pressure = get(f,'presf')
         self.nfp = get(f,'nfp')
 
         self.Aminor = get(f,'Aminor_p')
         self.Rmajor = get(f,'Rmajor_p')
+        self.N_modes = len(self.xm)
+        #self.N_modes = int(self.f.variables['mnmax'][:])
 
         self.plasma_file = False
         
@@ -422,6 +426,49 @@ class readVMEC():
 
         return R,Z
         
+    # Consider the asymmetric case, where there is for example rmnc AND rmns
+    # input toroidal and poloidal angle axis (tax, pax)
+    # outputs 2D array R(p,t)
+    #     this can be accelerated and reduced to 1D for a tokamak
+    def fourier2space_asym(self, cos_mn, sin_mn, tax,pax, s_idx=48):
+
+        arr = []
+        
+        xm = self.xm
+        xn = self.xn
+        for j in np.arange(self.N_modes):
+    
+            m = int( xm[j] )
+            n = int( xn[j] )
+            
+            c = cos_mn[s_idx,j]
+            s = sin_mn[s_idx,j]
+    
+            A = np.array( [[ s * np.sin( m*p - n*t )  for t in tax] for p in pax ] )
+            B = np.array( [[ c * np.cos( m*p - n*t )  for t in tax] for p in pax ] )
+            
+            arr.append(A + B)
+    
+        return np.sum(arr, axis=0)
+
+    def get_surface_asym(self, N, phi=0, s=-1):
+        
+        pax = np.linspace(0,np.pi*2,N)
+        tax = np.array([phi])
+
+        rmns = get(self.f, 'rmns')
+        zmnc = get(self.f, 'zmnc')
+
+        # positions
+        R2d = self.fourier2space_asym(self.rmnc, rmns, tax,pax, s_idx=s)
+        Z2d = self.fourier2space_asym(zmnc, self.zmns, tax,pax, s_idx=s)
+
+        # cartisian coordinates for flux surface
+        R = R2d [:,0]
+        Z = Z2d [:,0]
+
+        return R,Z
+
     def plot_single_angle(self,phi,color='C0',legend=True):
         for s in [1,5,10,15,20,25,30,35,40,45,-1]:
             R,Z = self.get_surface(N_poloidal_VMEC ,s=s, phi=phi)
