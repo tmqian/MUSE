@@ -417,8 +417,11 @@ class readVMEC():
         tax = np.array([phi])
 
         # positions
-        R2d = fourier2space(self.rmnc, tax,pax, self.xm, self.xn, sine=False, s_idx=s)
-        Z2d = fourier2space(self.zmns, tax,pax, self.xm, self.xn, sine=True, s_idx=s)
+        R2d = self.fourier2space(self.rmnc, tax,pax, sine=False, s_idx=s)
+        Z2d = self.fourier2space(self.zmns, tax,pax, sine=True , s_idx=s)
+        #R2d = fourier2space(self.rmnc, tax,pax, self.xm, self.xn, sine=False, s_idx=s)
+        #Z2d = fourier2space(self.zmns, tax,pax, self.xm, self.xn, sine=True, s_idx=s)
+
 
         # cartisian coordinates for flux surface
         R = R2d [:,0]
@@ -426,6 +429,26 @@ class readVMEC():
 
         return R,Z
         
+    def fourier2space(self, Cmn, tax, pax, s_idx=48, sine=True):
+        
+        arr = []
+        
+        #global xm,xn
+        for j in np.arange(self.N_modes):
+    
+            m = int( self.xm[j] )
+            n = int( self.xn[j] )
+            
+            c = Cmn[s_idx,j]
+    
+            if (sine):
+                A = [[ c * np.sin( m*p - n*t )  for t in tax] for p in pax ]
+            else:
+                A = [[ c * np.cos( m*p - n*t )  for t in tax] for p in pax ]
+            
+            arr.append(A)
+    
+        return np.sum(arr, axis=0)
     # Consider the asymmetric case, where there is for example rmnc AND rmns
     # input toroidal and poloidal angle axis (tax, pax)
     # outputs 2D array R(p,t)
