@@ -27,7 +27,10 @@ def get(f,key):
 
 
 # Taking Fourier modes CMN, selects for flux surface s_idx
-# select sine or cosine for array
+# select sine or cosine for array. 
+#      This global function is used to fourier transform 
+#      either Rmnc or Zmns in the VMEC class,
+#      or Bmnc in the BOOZ class.
 # input toroidal and poloidal angle axis (tax, pax)
 # outputs 2D array Z(p,t)
 def fourier2space(Cmn, tax,pax, xm,xn, s_idx=48, N_modes=61, sine=True):
