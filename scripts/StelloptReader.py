@@ -406,8 +406,8 @@ class readVMEC():
 
         self.Aminor = get(f,'Aminor_p')
         self.Rmajor = get(f,'Rmajor_p')
-        self.N_modes = len(self.xm)
-        #self.N_modes = int(self.f.variables['mnmax'][:])
+        #self.N_modes = len(self.xm)
+        self.N_modes = int(self.f.variables['mnmax'][:])
 
         self.plasma_file = False
         
@@ -416,9 +416,11 @@ class readVMEC():
         pax = np.linspace(0,np.pi*2,N)
         tax = np.array([phi])
 
+        N_modes = self.N_modes
+
         # positions
-        R2d = fourier2space(self.rmnc, tax,pax, self.xm, self.xn, sine=False, s_idx=s)
-        Z2d = fourier2space(self.zmns, tax,pax, self.xm, self.xn, sine=True, s_idx=s)
+        R2d = fourier2space(self.rmnc, tax,pax, self.xm, self.xn, sine=False, s_idx=s, N_modes=N_modes)
+        Z2d = fourier2space(self.zmns, tax,pax, self.xm, self.xn, sine=True,  s_idx=s, N_modes=N_modes)
 
         # cartisian coordinates for flux surface
         R = R2d [:,0]

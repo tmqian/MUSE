@@ -71,7 +71,6 @@ class Read_MGRID():
         self.n_ext_cur = self.n_ext_cur + 1
 
     def add_field_cylindrical(self,br,bp,bz,name='default'):
-
         
         # structure Bfield data into arrays (phi,z,r) arrays
 
