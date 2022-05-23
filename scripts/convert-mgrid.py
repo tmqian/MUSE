@@ -26,28 +26,30 @@ class Read_MGRID():
         f = open(fname,'rb')
         
         # Step 1: Read grid info (N radial points, N z points, N phi points, N field periods, N external currents)
+        print('DATA GROUP 1')
         
         head1 = np.fromfile(f,count=4,dtype='int8') # skip header bytes, which contain array length for fortran i/o
         block1 = np.fromfile(f,count=5,dtype='int32')
         if (_debug):
-            print(h1)
+            print(head1)
             #print(f.read(4)) ## print hexadecimal
             print(block1)
         nr,nz,nphi,nfp,nextcur = block1
         print('  nr, nz, nphi, nfp, n_ext_currents:', nr,nz,nphi,nfp,nextcur)
         
         # Step 2: Read grid boundary (R_min, Z_min, R_max, Z_max)
+        print('DATA GROUP 2')
         head2 = np.fromfile(f,count=8,dtype='int8') # again skipping header bytes
         block2 = np.fromfile(f,count=4,dtype='float64')
         if (_debug):
-            print(h2)
+            print(head2)
             #print(f.read(8)) ## print hexadecimal
             print(block2)
         rmin,zmin,rmax,zmax = block2 
         print('  rmin,rmax,zmin,zmax:', rmin,rmax,zmin,zmax)
         
         # Step 3: Read current groups (they come in 30 char strings)
-        #.     (this could potentially be a loop)
+        print('DATA GROUP 3')
         curlabel = []
         for j in np.arange(nextcur):
             block = np.fromfile(f,count=30,dtype='int8')
@@ -58,6 +60,7 @@ class Read_MGRID():
         print('  Coil Group labels: ', curlabel)
         
         # Step 4: Read B field, the encoding is Br_1, Bz_1, Bphi_1, Br_2, Bz_2 Bphi_2, ...
+        print('DATA GROUP 4')
         npoints = nr*nz*nphi
         print('  npoints: nr * nz * nphi = ', npoints)
         head4 = np.fromfile(f,count=8,dtype='int8')

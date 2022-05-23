@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 
 from netCDF4 import Dataset
-from coilpy import *
 import sys
 
 '''
@@ -13,7 +12,7 @@ import sys
    1: .h5 file from XFIELDLINES
    2: (optional) .plasma boundary from FAMUS
 
-   updated 13 December 2021, Tony Qian and Djin Patch
+   updated 23 May 2022, Tony Qian and Djin Patch
 '''
 
 fin = sys.argv[1]
@@ -27,7 +26,6 @@ try:
 except:
     _bound = False
     print('proceeding without plasma boundary')
-
 
 def plasma_plot(zeta=0, npoints=360):
     rb, zb = plasma.rz(np.linspace(0, 2*np.pi, npoints), zeta * np.ones(npoints))
@@ -51,11 +49,9 @@ def field_plot(phi=0):
 
  #   plot_circle()
     plt.axis('equal')
-    plt.xlim(0.22,0.4)
-    
+
     if _bound:
         plasma_plot(angle*np.pi)
-
 
 def plot_circle(R=0.3048, a=0.0762, N=100):
     tx = np.linspace(0, np.pi*2, N)
@@ -77,7 +73,6 @@ z_lines = get(f, 'Z_lines')
 phiaxis = get(f, 'phiaxis')
 npoinc = get(f, 'npoinc')[0]
 nlines = get(f, 'nlines')[0]
-
 
 # make plots
 temp = cm.rainbow(np.linspace(0, 1, 64))
