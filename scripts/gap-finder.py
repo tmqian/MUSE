@@ -103,7 +103,8 @@ def find_base(tower):
 
     return count
 
-mask = np.arange(18) + 1 - 4
+#mask = np.arange(18) + 1 - 4
+mask = np.arange(N_slices) + 1 
 a = np.abs(mat) * mask[np.newaxis,:]
 height = np.max(a, axis=1)
 mass = np.sum( np.abs(mat), axis=1 )
